@@ -1,0 +1,54 @@
+# Publishes the library to Maven Central when a GitHub Release is published.
+# Tag must match the version (e.g. v1.0.0). Version is derived by stripping the 'v' prefix.
+#
+# Required GitHub Secrets:
+#   MAVEN_CENTRAL_USERNAME  - Sonatype Central token username (from Central Portal)
+#   MAVEN_CENTRAL_PASSWORD  - Sonatype Central token password
+#   SIGNING_KEY             - ASCII-armored GPG private key (gpg --export-secret-keys --armor <key-id>)
+#   SIGNING_KEY_PASSWORD    - (optional) Passphrase for the GPG key
+#   SIGNING_KEY_ID          - (optional) GPG key ID (e.g. 8 chars), if not set the key is read from SIGNING_KEY
+
+name: Publish to Maven Central
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish Library
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: $VERSION (from tag $TAG)"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Publish to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+        run: |
+          ./gradlew publishToMavenCentral --no-configuration-cache -PlibraryVersion=${{ steps.version.outputs.version }}
