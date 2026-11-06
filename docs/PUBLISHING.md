@@ -72,6 +72,4 @@ The workflow uses the tag to set `libraryVersion` for that run, so the value in 
 ## Customizing POM and coordinates
 
 - **Coordinates**: `gradle.properties` → `libraryGroupId`, `libraryArtifactId`, `libraryVersion`.
-- **POM** (name, description, URL, license, developers, SCM): optional `gradle.properties` entries are documented at the top of `gradle.properties`. You can also set them in `library/build.gradle.kts` in the `mavenPublishing.pom { }` block.
-
-Replace placeholder URLs and developer IDs (e.g. `your-org`, `your-username`) with your own before publishing.
+- **POM** (name, description, URL, license, developers, SCM): configured in `library/build.gradle.kts` and customizable via `gradle.properties`.

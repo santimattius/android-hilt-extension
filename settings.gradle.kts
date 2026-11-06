@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "android-library-template"
+rootProject.name = "android-hilt-extension"
 include(":app")
 include(":library")

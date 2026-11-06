@@ -1,20 +1,20 @@
-# Android Library Template
+# Android Hilt Extension
 
-[![Maven Central](https://img.shields.io/maven-central/v/com.santimattius.android/library?color=blue&label=Maven%20Central)](https://central.sonatype.com/artifact/com.santimattius.android/library)
+[![Maven Central](https://img.shields.io/maven-central/v/com.santimattius.android/hilt-extension?color=blue&label=Maven%20Central)](https://central.sonatype.com/artifact/com.santimattius.android/hilt-extension)
 [![Android API](https://img.shields.io/badge/API-24%2B-brightgreen.svg?style=flat)](https://developer.android.com/guide/topics/manifest/uses-sdk-element#ApiLevels)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI](https://github.com/santimattius/android-library-template/actions/workflows/ci.yml/badge.svg)](https://github.com/santimattius/android-library-template/actions/workflows/ci.yml)
+[![CI](https://github.com/santimattius/android-hilt-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/santimattius/android-hilt-extension/actions/workflows/ci.yml)
 
-A modern Android library template with Maven Central publishing and GitHub Actions CI/CD. Use this repository as a starting point for your own Android libraries.
+A modern Android library providing extensions and utilities for Hilt dependency injection, with Maven Central publishing and GitHub Actions CI/CD.
 
 ---
 
 ## Description
 
-This template provides a production-ready structure for building and publishing Android libraries:
+This repository provides an Android library module and a sample application:
 
-- **`:library`** — The publishable Android library module (AAR).
-- **`:app`** — Sample application for local development and demos.
+- **`:library`** — The publishable Android library module (AAR), published as `com.santimattius.android:hilt-extension`.
+- **`:app`** — Sample application for local development, integration testing, and demos.
 
 Artifacts are published to [Maven Central](https://central.sonatype.com/) via the [gradle-maven-publish-plugin](https://github.com/vanniktech/gradle-maven-publish-plugin), with sources and Javadoc included and GPG signing configured for CI.
 
@@ -47,7 +47,7 @@ Add the dependency to your module’s `build.gradle.kts` (or `build.gradle`).
 
 ```kotlin
 dependencies {
-    implementation("com.santimattius.android:library:1.0.0-alpha01")
+    implementation("com.santimattius.android:hilt-extension:1.0.0-alpha01")
 }
 ```
 
@@ -55,7 +55,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.santimattius.android:library:1.0.0-alpha01'
+    implementation 'com.santimattius.android:hilt-extension:1.0.0-alpha01'
 }
 ```
 
@@ -74,11 +74,10 @@ dependencyResolutionManagement {
 
 ## Usage
 
-Replace this section with a short description and code samples for your library. For example:
+Replace this section with a short description and code samples for your Hilt extensions. For example:
 
 ```kotlin
-// Example usage of your library API
-// YourLibrary.doSomething()
+// Example usage of your Hilt extension API
 ```
 
 ---
@@ -86,17 +85,17 @@ Replace this section with a short description and code samples for your library.
 ## Project structure
 
 ```
-android-library-template/
+android-hilt-extension/
 ├── app/                    # Sample app (not published)
-├── library/                 # Android library module (published to Maven Central)
+├── library/                # Android library module (published to Maven Central)
 ├── gradle/
 │   └── libs.versions.toml  # Version catalog
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                      # Build & test on push/PR
-│       └── publish-maven-central.yml   # Publish on release
+│       ├── ci.yml                    # Build & test on push/PR
+│       └── publish-maven-central.yml # Publish on release
 ├── docs/
-│   └── PUBLISHING.md        # Maven Central & CI/CD setup
+│   └── PUBLISHING.md       # Maven Central & CI/CD setup
 ├── build.gradle.kts
 ├── settings.gradle.kts
 └── gradle.properties       # SDK versions, library coordinates, POM overrides
@@ -149,5 +148,5 @@ This project is licensed under the **Apache License 2.0**. See the [LICENSE](LIC
 
 ## Contact
 
-- **Issues:** [GitHub Issues](https://github.com/santimattius/android-library-template/issues)
-- **Releases:** [GitHub Releases](https://github.com/santimattius/android-library-template/releases)
+- **Issues:** [GitHub Issues](https://github.com/santimattius/android-hilt-extension/issues)
+- **Releases:** [GitHub Releases](https://github.com/santimattius/android-hilt-extension/releases)

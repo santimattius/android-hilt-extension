@@ -11,7 +11,7 @@ val libraryArtifactId: String by project
 val libraryVersion: String by project
 
 android {
-    namespace = "com.santimattius.android.library"
+    namespace = "com.santimattius.android.hilt"
     compileSdk = androidTargetSdkVersion.toInt()
 
     defaultConfig {
@@ -53,9 +53,9 @@ mavenPublishing {
 
     pom {
         name.set(project.provider { project.name })
-        description.set(findProperty("POM_DESCRIPTION") as String? ?: "Android library template")
-        inceptionYear.set(findProperty("POM_INCEPTION_YEAR") as String? ?: "2025")
-        url.set(findProperty("POM_URL") as String? ?: "https://github.com/your-org/android-library-template/")
+        description.set(findProperty("POM_DESCRIPTION") as String? ?: "Android Hilt Extension")
+        inceptionYear.set(findProperty("POM_INCEPTION_YEAR") as String? ?: "2026")
+        url.set(findProperty("POM_URL") as String? ?: "https://github.com/santimattius/android-hilt-extension/")
         licenses {
             license {
                 name.set("The Apache License, Version 2.0")
@@ -65,15 +65,15 @@ mavenPublishing {
         }
         developers {
             developer {
-                id.set(findProperty("POM_DEVELOPER_ID") as String? ?: "your-username")
-                name.set(findProperty("POM_DEVELOPER_NAME") as String? ?: "Your Name")
-                url.set(findProperty("POM_DEVELOPER_URL") as String? ?: "https://github.com/your-username/")
+                id.set(findProperty("POM_DEVELOPER_ID") as String? ?: "santimattius")
+                name.set(findProperty("POM_DEVELOPER_NAME") as String? ?: "Santiago Mattiauda")
+                url.set(findProperty("POM_DEVELOPER_URL") as String? ?: "https://github.com/santimattius/")
             }
         }
         scm {
-            url.set(findProperty("POM_SCM_URL") as String? ?: "https://github.com/your-org/android-library-template/")
-            connection.set("scm:git:git://github.com/your-org/android-library-template.git")
-            developerConnection.set("scm:git:ssh://git@github.com/your-org/android-library-template.git")
+            url.set(findProperty("POM_SCM_URL") as String? ?: "https://github.com/santimattius/android-hilt-extension/")
+            connection.set("scm:git:git://github.com/santimattius/android-hilt-extension.git")
+            developerConnection.set("scm:git:ssh://git@github.com/santimattius/android-hilt-extension.git")
         }
     }
 }

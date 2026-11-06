@@ -1,4 +1,4 @@
-package com.santimattius.android.library
+package com.santimattius.android.hilt
 
 import org.junit.Test
 
