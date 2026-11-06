@@ -17,15 +17,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # JDK 25 matches the Gradle daemon JVM pinned in gradle/gradle-daemon-jvm.properties.
+      # Library bytecode still targets JVM 17 (set by the hiltext.* convention plugins).
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: "17"
+          java-version: "25"
           cache: "gradle"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # The root check also runs the checks of the included builds (build-logic and, once it
+      # exists, hilt-trace-gradle-plugin) and verifyVersionAlignment.
       - name: Build and run tests
-        run: ./gradlew build --no-configuration-cache
+        run: ./gradlew build --configuration-cache

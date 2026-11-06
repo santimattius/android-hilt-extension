@@ -1,5 +1,8 @@
-# Publishes the library to Maven Central when a GitHub Release is published.
-# Tag must match the version (e.g. v1.0.0). Version is derived by stripping the 'v' prefix.
+# Publishes every library module to Maven Central when a GitHub Release is published.
+# Each module is published under its own artifact id (the module name) through the
+# hiltext.publishing convention plugin. Tag must match the version (e.g. v1.0.0). Version is
+# derived by stripping the 'v' prefix and passed to every build, included builds too, through
+# ORG_GRADLE_PROJECT_libraryVersion (an included build does not read the root gradle.properties).
 #
 # Required GitHub Secrets:
 #   MAVEN_CENTRAL_USERNAME  - Sonatype Central token username (from Central Portal)
@@ -19,17 +22,19 @@ permissions:
 
 jobs:
   publish:
-    name: Publish Library
+    name: Publish Libraries
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # JDK 25 matches the Gradle daemon JVM pinned in gradle/gradle-daemon-jvm.properties.
+      # Library bytecode still targets JVM 17 (set by the hiltext.* convention plugins).
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: "17"
+          java-version: "25"
           cache: "gradle"
 
       - name: Derive version from tag
@@ -43,12 +48,27 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Publish to Maven Central
+      # Run from the root, publishToMavenCentral selects the task in every module that applies
+      # hiltext.publishing (hilt-trace-runtime, hilt-trace-compiler, hilt-coroutines-runtime).
+      - name: Publish modules to Maven Central
         env:
+          ORG_GRADLE_PROJECT_libraryVersion: ${{ steps.version.outputs.version }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
-        run: |
-          ./gradlew publishToMavenCentral --no-configuration-cache -PlibraryVersion=${{ steps.version.outputs.version }}
+        run: ./gradlew publishToMavenCentral --configuration-cache
+
+      # An included build's tasks are not selected by name from the root, so the Gradle plugin is
+      # published with its own invocation. Skipped until the included build exists.
+      - name: Publish Gradle plugin to Maven Central
+        if: ${{ hashFiles('hilt-trace-gradle-plugin/settings.gradle.kts') != '' }}
+        env:
+          ORG_GRADLE_PROJECT_libraryVersion: ${{ steps.version.outputs.version }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+        run: ./gradlew -p hilt-trace-gradle-plugin publishToMavenCentral --configuration-cache
