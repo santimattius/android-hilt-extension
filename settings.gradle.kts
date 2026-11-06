@@ -22,4 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "android-hilt-extension"
 include(":app")
 include(":library")
-include(":spike")
+include(":spike", ":spike:processor", ":spike:lib")
