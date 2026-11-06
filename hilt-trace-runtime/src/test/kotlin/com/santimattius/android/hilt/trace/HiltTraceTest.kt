@@ -161,7 +161,13 @@ class HiltTraceTest {
         burst()
         val allocated = threads.getThreadAllocatedBytes(id) - before
 
-        assertEquals(0L, allocated)
+        // A disabled category must not allocate per call: one object per call would add at least
+        // CALLS * 16 bytes. The bound only absorbs one-off noise of the measurement itself (JIT and
+        // thread-local allocation buffers differ between JDKs and machines).
+        assertTrue(
+            "allocated $allocated bytes over $CALLS disabled calls",
+            allocated < MAX_NOISE_BYTES,
+        )
     }
 
     @Test
@@ -252,5 +258,6 @@ class HiltTraceTest {
         const val BEGIN = 1
         const val END = 2
         const val CALLS = 10_000
+        const val MAX_NOISE_BYTES = 4_096L
     }
 }
