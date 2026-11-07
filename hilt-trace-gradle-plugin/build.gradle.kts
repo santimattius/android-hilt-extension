@@ -42,6 +42,11 @@ dependencies {
     compileOnly(libs.asm.tree)
 
     testImplementation(libs.junit)
+    // ASM is compileOnly above; tests need it on the runtime classpath, plus the bytecode verifier.
+    testImplementation(libs.asm)
+    testImplementation(libs.asm.tree)
+    testImplementation(libs.asm.analysis)
+    testImplementation(libs.asm.util)
     testImplementation(gradleTestKit())
     testPlugins(libs.android.gradlePlugin)
 }
