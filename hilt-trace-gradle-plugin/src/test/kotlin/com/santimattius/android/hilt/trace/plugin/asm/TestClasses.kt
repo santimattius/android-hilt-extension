@@ -21,7 +21,7 @@ internal fun fixtureBytes(name: String): ByteArray =
 
 internal fun readClass(bytes: ByteArray): ClassNode = ClassNode().also { ClassReader(bytes).accept(it, 0) }
 
-internal const val SYNTHETIC = "synthetic/SwitchingProvider"
+internal const val SYNTHETIC = "synthetic/Outer\$SwitchingProvider"
 
 /**
  * A minimal `SwitchingProvider` shaped class whose public `get()` switches on `id` with a
