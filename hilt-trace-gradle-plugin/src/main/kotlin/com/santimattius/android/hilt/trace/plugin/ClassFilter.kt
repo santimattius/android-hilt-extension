@@ -16,6 +16,12 @@ internal fun isInstrumentableClassName(className: String): Boolean {
     if (className.endsWith(SWITCHING_PROVIDER_SUFFIX)) return true
     val simpleNameStart = className.lastIndexOf('.') + 1
     if (className.startsWith(HILT_BASE_PREFIX, simpleNameStart)) return true
+    return isComponentImplementationName(className)
+}
+
+/** Whether [className] (dotted) is a generated component implementation, `Dagger*_HiltComponents_*CImpl`. Allocation free. */
+internal fun isComponentImplementationName(className: String): Boolean {
+    val simpleNameStart = className.lastIndexOf('.') + 1
     return className.startsWith(COMPONENT_PREFIX, simpleNameStart) &&
         className.indexOf(COMPONENT_INFIX, simpleNameStart) >= 0 &&
         className.endsWith(COMPONENT_IMPL_SUFFIX)
