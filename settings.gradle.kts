@@ -24,4 +24,5 @@ rootProject.name = "android-hilt-extension"
 include(":app")
 include(":hilt-trace-runtime")
 include(":hilt-coroutines-runtime")
+include(":hilt-trace-compiler")
 include(":spike", ":spike:processor", ":spike:lib")
