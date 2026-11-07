@@ -1,6 +1,7 @@
 package com.santimattius.android.hilt.trace.plugin
 
 import org.gradle.testkit.runner.GradleRunner
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -48,6 +49,19 @@ class PluginWiringTest {
         assertTrue(second, "Reusing configuration cache" in second)
     }
 
+    @Test
+    fun `fastInit disabled logs one warning for all instrumented variants and the build succeeds`() {
+        val result = run("", ":transformDebugClassesWithAsm", ":transformBenchmarkClassesWithAsm", "-Pdagger.hilt.fastInit=false")
+        assertEquals(result, 1, Regex("Hilt Trace: .*fastInit").findAll(result).count())
+        assertTrue(result, ":transformDebugClassesWithAsm SKIPPED" in result && ":transformBenchmarkClassesWithAsm SKIPPED" in result)
+    }
+
+    @Test
+    fun `fastInit left at its default logs no warning`() {
+        val result = run("", ":transformDebugClassesWithAsm", ":transformBenchmarkClassesWithAsm")
+        assertEquals(result, 0, Regex("Hilt Trace: .*fastInit").findAll(result).count())
+    }
+
     private fun run(extension: String, vararg args: String, fails: Boolean = false): String {
         projectDir.root.resolve("settings.gradle.kts").writeText(
             """
@@ -68,6 +82,8 @@ class PluginWiringTest {
                 defaultConfig { minSdk = 24 }
                 buildTypes { create("benchmark") { initWith(getByName("release")) } }
             }
+            // The plugin-added coordinates are published later; they are irrelevant to these builds.
+            configurations.all { exclude(group = "com.santimattius.android") }
             $extension
             """.trimIndent(),
         )
