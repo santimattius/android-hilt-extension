@@ -34,12 +34,19 @@ android {
     }
 }
 
+ksp { arg("hiltTrace.module", ":spike") }
+
 dependencies {
+    implementation(project(":spike:lib"))
+    ksp(project(":spike:processor"))
     implementation("com.google.dagger:hilt-android:2.60.1")
     ksp("com.google.dagger:hilt-compiler:2.60.1")
     implementation("androidx.activity:activity:1.13.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel:2.11.0")
     implementation("androidx.tracing:tracing:2.0.5")
+    androidTestImplementation("androidx.tracing:tracing-wire:2.0.5")
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation("androidx.test:runner:1.7.0")
 }
 
 // Slice 0.6 measurement: a pass-through factory that only applies the production name filter and
