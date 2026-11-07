@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.android.library) apply false
+    // KSP and Hilt plugin versions are declared once here; modules apply the ids unversioned.
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.hilt) apply false
     id("hiltext.version-alignment")
 }
 
