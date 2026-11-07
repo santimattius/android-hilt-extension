@@ -11,8 +11,11 @@ import org.objectweb.asm.Opcodes.ARETURN
 import org.objectweb.asm.Opcodes.ATHROW
 import org.objectweb.asm.Opcodes.GETFIELD
 import org.objectweb.asm.Opcodes.ICONST_0
+import org.objectweb.asm.Opcodes.ILOAD
 import org.objectweb.asm.Opcodes.INVOKESPECIAL
 import org.objectweb.asm.Opcodes.NEW
+import org.objectweb.asm.Opcodes.PUTFIELD
+import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.Opcodes.V17
 import org.objectweb.asm.tree.ClassNode
 
@@ -39,6 +42,17 @@ internal fun syntheticProvider(
     val writer = framesWriter()
     writer.visit(V17, ACC_PUBLIC or ACC_SUPER, SYNTHETIC, null, "java/lang/Object", arrayOf("dagger/internal/Provider"))
     writer.visitField(0, "id", "I", null, null).visitEnd()
+    writer.visitMethod(0, "<init>", "(I)V", null, null).apply {
+        visitCode()
+        visitVarInsn(ALOAD, 0)
+        visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false)
+        visitVarInsn(ALOAD, 0)
+        visitVarInsn(ILOAD, 1)
+        visitFieldInsn(PUTFIELD, SYNTHETIC, "id", "I")
+        visitInsn(RETURN)
+        visitMaxs(0, 0)
+        visitEnd()
+    }
     writer.visitMethod(ACC_PUBLIC, "get", "()Ljava/lang/Object;", null, null).apply {
         visitCode()
         val default = Label()
