@@ -24,6 +24,17 @@ val testPlugins = configurations.create("testPlugins") {
     }
 }
 
+// The coordinates of the artifacts the plugin adds to apps follow the build's own library version.
+tasks.processResources {
+    // Local value: the filter closure must not reference the script object (configuration cache).
+    val coordinates = mapOf(
+        "libraryGroupId" to project.property("libraryGroupId") as String,
+        "libraryVersion" to project.property("libraryVersion") as String,
+    )
+    inputs.properties(coordinates)
+    filesMatching("hilt-trace-plugin.properties") { expand(coordinates) }
+}
+
 dependencies {
     // AGP and ASM are supplied by the consumer build at runtime; never bundled into the plugin.
     compileOnly(libs.android.gradlePlugin)
