@@ -1,5 +1,6 @@
 pluginManagement {
     includeBuild("build-logic")
+    includeBuild("hilt-trace-gradle-plugin")
     repositories {
         google {
             content {
