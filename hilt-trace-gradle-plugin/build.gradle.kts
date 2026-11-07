@@ -8,6 +8,11 @@ plugins {
 
 kotlin {
     explicitApi()
+    // The catalogue model and merger are shared with :hilt-trace-compiler by source (they have no KSP
+    // imports), so no extra artifact is published and their tests stay in :hilt-trace-compiler.
+    sourceSets.main {
+        kotlin.srcDir("../hilt-trace-compiler/src/main/kotlin/com/santimattius/android/hilt/trace/compiler/catalogue")
+    }
 }
 
 // AGP resolved with runtime attributes (the compile classpath only has API variants) for TestKit.
