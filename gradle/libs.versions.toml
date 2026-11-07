@@ -39,6 +39,8 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-tracing = { group = "androidx.tracing", name = "tracing", version.ref = "tracing" }
 androidx-tracing-wire = { group = "androidx.tracing", name = "tracing-wire", version.ref = "tracing" }
+dagger = { group = "com.google.dagger", name = "dagger", version.ref = "hilt" }
+hilt-core = { group = "com.google.dagger", name = "hilt-core", version.ref = "hilt" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
