@@ -9,8 +9,8 @@ import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
-    id("com.google.devtools.ksp") version "2.3.13"
-    id("com.google.dagger.hilt.android") version "2.60.1"
+    id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
 }
 
 val androidMinSdkVersion: String by project
