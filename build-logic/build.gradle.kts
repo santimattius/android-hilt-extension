@@ -40,6 +40,10 @@ gradlePlugin {
             id = "hiltext.jvm-library"
             implementationClass = "com.santimattius.android.hilt.buildlogic.JvmLibraryConventionPlugin"
         }
+        register("versionAlignment") {
+            id = "hiltext.version-alignment"
+            implementationClass = "com.santimattius.android.hilt.buildlogic.VersionAlignmentConventionPlugin"
+        }
         register("publishing") {
             id = "hiltext.publishing"
             implementationClass = "com.santimattius.android.hilt.buildlogic.PublishingConventionPlugin"
