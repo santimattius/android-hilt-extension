@@ -1,6 +1,6 @@
 # Publishing to Maven Central
 
-This template uses the [gradle-maven-publish-plugin](https://github.com/vanniktech/gradle-maven-publish-plugin) to publish the `:library` module to Maven Central.
+This template uses the [gradle-maven-publish-plugin](https://github.com/vanniktech/gradle-maven-publish-plugin) to publish the library modules to Maven Central. Shared publishing configuration lives in the `hiltext.publishing` convention plugin of the `build-logic` included build.
 
 ## Prerequisites
 
@@ -20,6 +20,19 @@ This template uses the [gradle-maven-publish-plugin](https://github.com/vannikte
      ```
    - Store the full output (including `-----BEGIN PGP PRIVATE KEY BLOCK-----` and `-----END PGP PRIVATE KEY BLOCK-----`) as a secret.
 
+## Published artifacts
+
+Four artifacts are published, each under its own artifact id (the module name) with the group `com.santimattius.android`:
+
+| Artifact id | Module | Build |
+|-------------|--------|-------|
+| `hilt-trace-runtime` | `:hilt-trace-runtime` | root build |
+| `hilt-trace-compiler` | `:hilt-trace-compiler` | root build |
+| `hilt-coroutines-runtime` | `:hilt-coroutines-runtime` | root build |
+| `hilt-trace-gradle-plugin` | `hilt-trace-gradle-plugin/` | included build |
+
+`build-logic` is an included build too, but it holds only the convention plugins and is not published. The modules are added slice by slice, so an artifact appears here once its module exists.
+
 ## Local publishing (optional)
 
 Put credentials in `~/.gradle/gradle.properties` (do not commit):
@@ -36,14 +49,11 @@ Then run:
 
 ```bash
 ./gradlew publishToMavenCentral
+# The included-build plugin is published with its own invocation:
+./gradlew -p hilt-trace-gradle-plugin publishToMavenCentral
 ```
 
-For automatic release (no manual “Publish” in Central Portal):
-
-```bash
-./gradlew publishToMavenCentral
-# With automaticRelease = true (already set in this template), the plugin will release automatically.
-```
+For automatic release (no manual “Publish” in Central Portal), nothing more is needed: `automaticRelease = true` is already set in the `hiltext.publishing` convention plugin, so the plugin releases automatically.
 
 ## CI/CD with GitHub Actions
 
@@ -71,5 +81,5 @@ The workflow uses the tag to set `libraryVersion` for that run, so the value in 
 
 ## Customizing POM and coordinates
 
-- **Coordinates**: `gradle.properties` → `libraryGroupId`, `libraryArtifactId`, `libraryVersion`.
-- **POM** (name, description, URL, license, developers, SCM): configured in `library/build.gradle.kts` and customizable via `gradle.properties`.
+- **Coordinates**: `gradle.properties` → `libraryGroupId` and `libraryVersion`. The artifact id is the module name.
+- **POM** (name, description, URL, license, developers, SCM): configured in `build-logic/src/main/kotlin/com/santimattius/android/hilt/buildlogic/PublishingConventionPlugin.kt` and customizable via `gradle.properties`.

@@ -11,9 +11,9 @@ A modern Android library providing extensions and utilities for Hilt dependency 
 
 ## Description
 
-This repository provides an Android library module and a sample application:
+This repository provides shared build logic and a sample application. The library modules are added in later changes:
 
-- **`:library`** — The publishable Android library module (AAR), published as `com.santimattius.android:hilt-extension`.
+- **`build-logic/`** — Included build with the convention plugins `hiltext.android-library`, `hiltext.jvm-library` and `hiltext.publishing` used by every published module. The earlier `com.santimattius.android:hilt-extension:1.0.0-alpha01` artifact stays on Maven Central.
 - **`:app`** — Sample application for local development, integration testing, and demos.
 
 Artifacts are published to [Maven Central](https://central.sonatype.com/) via the [gradle-maven-publish-plugin](https://github.com/vanniktech/gradle-maven-publish-plugin), with sources and Javadoc included and GPG signing configured for CI.
@@ -87,7 +87,7 @@ Replace this section with a short description and code samples for your Hilt ext
 ```
 android-hilt-extension/
 ├── app/                    # Sample app (not published)
-├── library/                # Android library module (published to Maven Central)
+├── build-logic/            # Included build: convention plugins (not published)
 ├── gradle/
 │   └── libs.versions.toml  # Version catalog
 ├── .github/
@@ -109,11 +109,8 @@ android-hilt-extension/
 # Build and run unit + instrumented tests
 ./gradlew build
 
-# Run only unit tests
-./gradlew :library:testReleaseUnitTest
-
-# Publish to local Maven repository (~/.m2)
-./gradlew :library:publishToMavenLocal
+# Run only the build-logic tests
+./gradlew :build-logic:check
 ```
 
 ---
