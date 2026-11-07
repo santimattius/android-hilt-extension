@@ -6,6 +6,7 @@ import org.objectweb.asm.Opcodes.ASTORE
 import org.objectweb.asm.Opcodes.ATHROW
 import org.objectweb.asm.Opcodes.INVOKESTATIC
 import org.objectweb.asm.Opcodes.NEW
+import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.InsnList
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.LabelNode
@@ -69,10 +70,10 @@ internal fun wrapCaseBodies(method: MethodNode, bodies: List<CaseBody>, nameOf: 
  * neither.
  */
 internal fun fallbackName(body: CaseBody): String? =
-    generateSequence(body.label.next) { it.next }.takeWhile { it !== body.ret }.firstNotNullOfOrNull {
-        when {
-            it is TypeInsnNode && it.opcode == NEW -> it.desc
-            it is MethodInsnNode && it.opcode == INVOKESTATIC -> it.owner
-            else -> null
-        }
-    }?.replace('/', '.')
+    creationSite(body)?.let { if (it is TypeInsnNode) it.desc else (it as MethodInsnNode).owner }?.replace('/', '.')
+
+/** The first `NEW` or `INVOKESTATIC` of the case body: the instruction that tells which binding it creates. */
+internal fun creationSite(body: CaseBody): AbstractInsnNode? =
+    generateSequence(body.label.next) { it.next }.takeWhile { it !== body.ret }.firstOrNull {
+        (it is TypeInsnNode && it.opcode == NEW) || (it is MethodInsnNode && it.opcode == INVOKESTATIC)
+    }

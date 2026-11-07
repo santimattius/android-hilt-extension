@@ -1,5 +1,6 @@
 package com.santimattius.android.hilt.trace.plugin
 
+import com.android.build.api.instrumentation.FramesComputationMode
 import com.android.build.api.instrumentation.InstrumentationScope
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.ApplicationVariant
@@ -43,6 +44,7 @@ public class HiltTracePlugin : Plugin<Project> {
                         parameters.createRuleEnabled.set(fastInit)
                         parameters.catalogues.from(catalogueRoots(project, variant))
                     }
+                    variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
                 }
             }
         }
