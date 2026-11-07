@@ -22,4 +22,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "android-hilt-extension"
 include(":app")
+include(":hilt-trace-runtime")
 include(":spike", ":spike:processor", ":spike:lib")
