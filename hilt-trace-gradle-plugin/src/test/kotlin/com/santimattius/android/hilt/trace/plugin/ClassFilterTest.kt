@@ -44,8 +44,8 @@ class ClassFilterTest {
         assertEquals(
             listOf(
                 "ActivityCImpl", "ActivityCImpl\$SwitchingProvider", "ActivityRetainedCImpl\$SwitchingProvider",
-                "Hilt_MainActivity", "SingletonCImpl", "SingletonCImpl\$SwitchingProvider",
-                "ViewModelCImpl\$SwitchingProvider",
+                "FragmentCImpl", "Hilt_MainActivity", "ServiceCImpl", "SingletonCImpl", "SingletonCImpl\$SwitchingProvider",
+                "ViewCImpl", "ViewModelCImpl\$SwitchingProvider", "ViewWithFragmentCImpl",
             ),
             accepted,
         )
