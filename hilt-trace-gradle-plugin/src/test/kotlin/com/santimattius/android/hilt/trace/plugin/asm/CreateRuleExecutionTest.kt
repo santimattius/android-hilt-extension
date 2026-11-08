@@ -132,7 +132,7 @@ class CreateRuleExecutionTest {
             syntheticProvider(caseCount = 4, holes = setOf(1), layout = listOf(3, 0, 2)) to listOf(0, 2, 3),
         )
         for ((bytes, ids) in shapes) {
-            val rig = ExecutionRig(listOf(bytes), nameOfString)
+            val rig = createRuleRig(listOf(bytes), nameOfString)
             for (id in ids) {
                 HiltTrace.events.clear()
                 assertEquals("case$id", rig.get(rig.provider(SYNTHETIC.replace('/', '.'), rig.outer(), id)))

@@ -49,11 +49,11 @@ private class Usage {
  */
 internal class ExecutionRig(
     originals: List<ByteArray>,
-    nameOf: (CaseBody) -> String? = ::instrumentEverything,
+    transform: (ByteArray) -> TransformResult,
 ) : ClassLoader(ExecutionRig::class.java.classLoader) {
 
     private val classes: Map<String, ByteArray> = originals.associate { original ->
-        val result = transformSwitchingProvider(original, nameOf)
+        val result = transform(original)
         assertNull(result.warning, result.warning)
         ClassReader(result.bytes).accept(CheckClassAdapter(ClassWriter(0), true), 0)
         readClass(result.bytes).name.replace('/', '.') to result.bytes
@@ -114,7 +114,7 @@ internal class ExecutionRig(
     }
 
     /** A fresh instance of the synthesized singleton component, whose provider fields tests fill in. */
-    fun outer(): Any = loadClass(COMPONENT).getDeclaredConstructor().newInstance()
+    fun outer(): Any = loadClass(COMPONENT).getDeclaredConstructor().apply { isAccessible = true }.newInstance()
 
     /** Builds a provider of class [className] for [id]; its constructor takes the component first (when it has one) and `id` last. */
     fun provider(className: String, outer: Any, id: Int): Any {
@@ -144,7 +144,11 @@ internal class ExecutionRig(
 }
 
 /** Sets the instance field [name] of a synthesized component. */
-internal fun Any.set(name: String, value: Any?) = javaClass.getDeclaredField(name).set(this, value)
+internal fun Any.set(name: String, value: Any?) = javaClass.getDeclaredField(name).apply { isAccessible = true }.set(this, value)
 
-/** A rig over the checked-in fixtures with the given file names. */
-internal fun rigOf(vararg fixtures: String) = ExecutionRig(fixtures.map(::fixtureBytes))
+/** The rig of the create rule: every `$SwitchingProvider` among [originals] is transformed with [nameOf]. */
+internal fun createRuleRig(originals: List<ByteArray>, nameOf: (CaseBody) -> String? = ::instrumentEverything) =
+    ExecutionRig(originals) { transformSwitchingProvider(it, nameOf) }
+
+/** A create rule rig over the checked-in fixtures with the given file names. */
+internal fun rigOf(vararg fixtures: String) = createRuleRig(fixtures.map(::fixtureBytes))
