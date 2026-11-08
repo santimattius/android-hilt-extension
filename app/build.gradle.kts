@@ -1,10 +1,16 @@
+import com.android.build.api.variant.HasUnitTestBuilder
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
+    id("com.santimattius.android.hilt.trace")
 }
 
 val androidMinSdkVersion: String by project
 val androidTargetSdkVersion: String by project
+val libraryGroupId: String by project
 
 android {
     namespace = "com.santimattius.android.sample"
@@ -36,6 +42,33 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        // Workaround (AGP 9.5.0 with Kotlin 2.4.21 Compose plugin): AGP creates a Compose Preview runfiles
+        // task for every variant when the Compose compiler plugin is applied, and it fails while the
+        // bytecode transform task resolves its dependencies unless Android resources and unit tests are
+        // enabled for the variant. The failure is independent of the Hilt Trace plugin.
+        unitTests.isIncludeAndroidResources = true
+    }
+}
+
+androidComponents {
+    beforeVariants { variantBuilder ->
+        // Second half of the Compose Preview workaround above: unit tests must exist for every variant.
+        (variantBuilder as? HasUnitTestBuilder)?.enableUnitTest = true
+    }
+}
+
+// The plugin adds the compiler and runtime at the build's own group and version. Those artifacts are
+// not published yet, so inside this build the coordinates resolve to the local projects.
+configurations.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("$libraryGroupId:hilt-trace-runtime")).using(project(":hilt-trace-runtime"))
+        substitute(module("$libraryGroupId:hilt-trace-compiler")).using(project(":hilt-trace-compiler"))
+    }
+}
+
+ksp {
+    arg("hiltTrace.module", ":app")
 }
 
 dependencies {
@@ -47,6 +80,11 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    // tracing-wire does not expose androidx.tracing on the compile classpath, so declare it explicitly.
+    implementation(libs.androidx.tracing)
+    debugImplementation(libs.androidx.tracing.wire)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
