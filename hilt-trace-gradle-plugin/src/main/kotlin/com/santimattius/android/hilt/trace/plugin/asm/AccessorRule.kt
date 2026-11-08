@@ -47,7 +47,8 @@ internal class AccessorNames(entryPoints: List<EntryPoint>) {
  * Rule A: wraps whole public instance methods of a component implementation class in a
  * `hilt.inject` slice, but only those [nameOf] knows by name and descriptor. Everything else (private
  * helpers, uncatalogued methods, other classes) is left alone, and an inline construction inside an
- * accessor gets no slice of its own.
+ * accessor gets no slice of its own. Rule J (`inject*` methods of injection targets, [InjectionNames])
+ * runs through this same engine with a different [nameOf].
  *
  * Fail open, as for rule C: the node changes only after every accessor succeeded, and a shape that
  * is not straight-line code, a method over the code limit or any throwable leaves it as read with

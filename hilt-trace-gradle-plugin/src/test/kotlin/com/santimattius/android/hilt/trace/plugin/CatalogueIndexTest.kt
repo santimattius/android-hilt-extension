@@ -8,6 +8,7 @@ import com.santimattius.android.hilt.trace.compiler.catalogue.InjectionTarget
 import com.santimattius.android.hilt.trace.compiler.catalogue.JsonWriter
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -51,14 +52,29 @@ class CatalogueIndexTest {
         val index = index(root(catalogue(bindings = listOf(binding))))
 
         assertTrue(index.accessors.isEmpty)
+        assertTrue(index.injections.isEmpty)
+        assertFalse(index.hasComponentRules)
         assertTrue(warnings.toString(), warnings.isEmpty())
     }
 
     @Test
-    fun `an injection target alone is a catalogue too`() {
-        index(root(catalogue(targets = listOf(InjectionTarget("p.MainActivity")))))
+    fun `an injection target alone is a catalogue too and names the inject method`() {
+        val index = index(root(catalogue(targets = listOf(InjectionTarget("p.MainActivity")))))
 
+        assertEquals("MainActivity.members", index.injections.nameOf("injectMainActivity", "(Lp/MainActivity;)V"))
+        assertTrue(index.accessors.isEmpty)
         assertTrue(warnings.toString(), warnings.isEmpty())
+    }
+
+    @Test
+    fun `one lookup serves rule A and rule J and rule A wins a shared signature`() {
+        val shared = EntryPoint("p.Exposed", "injectMainActivity", "(Lp/MainActivity;)V", "dagger.hilt.components.SingletonComponent")
+        val index = index(root(catalogue(entryPoints = listOf(entryPoint, shared), targets = listOf(InjectionTarget("p.MainActivity")))))
+
+        assertEquals("SingletonComponent.foo", index.componentMethodName("foo", "()Lp/Foo;"))
+        assertEquals("SingletonComponent.injectMainActivity", index.componentMethodName("injectMainActivity", "(Lp/MainActivity;)V"))
+        assertNull(index.componentMethodName("injectOther", "(Lp/Other;)V"))
+        assertTrue(index.hasComponentRules)
     }
 
     @Test

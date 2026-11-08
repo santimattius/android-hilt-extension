@@ -13,10 +13,11 @@ private val indexes = java.util.Collections.synchronizedMap(java.util.WeakHashMa
 
 /**
  * Entry point of the bytecode instrumentation. Rule C (creation) wraps the case bodies of
- * `$SwitchingProvider` classes and rule A (accessors) the catalogued entry point methods of the
- * `Dagger*_HiltComponents_*CImpl` classes; every other accepted class is passed through unchanged
- * until the later rules arrive. The catalogue is read once per factory: it names the slices of both
- * rules, and without it rule A has nothing to wrap.
+ * `$SwitchingProvider` classes, rule A (accessors) the catalogued entry point methods and rule J
+ * (inject) the public `inject*` methods of catalogued injection targets of the
+ * `Dagger*_HiltComponents_*CImpl` classes; every other accepted class is passed through unchanged.
+ * The catalogue is read once per factory: it names the slices of all three rules, and without it
+ * rules A and J have nothing to wrap. `*_MembersInjector` is never instrumented (rule M is cut).
  */
 public abstract class HiltTraceClassVisitorFactory : AsmClassVisitorFactory<HiltTraceParameters> {
 
@@ -29,8 +30,8 @@ public abstract class HiltTraceClassVisitorFactory : AsmClassVisitorFactory<Hilt
             parameters.get().createRuleEnabled.get() && className.endsWith("\$SwitchingProvider") ->
                 instrumentingVisitor(nextClassVisitor, index().names::nameOf, ::warn)
             isComponentImplementationName(className) -> {
-                val accessors = index().accessors
-                if (accessors.isEmpty) nextClassVisitor else bufferedVisitor(nextClassVisitor, ::warn) { instrumentAccessors(it, accessors::nameOf) }
+                val index = index()
+                if (!index.hasComponentRules) nextClassVisitor else bufferedVisitor(nextClassVisitor, ::warn) { instrumentAccessors(it, index::componentMethodName) }
             }
             else -> nextClassVisitor
         }

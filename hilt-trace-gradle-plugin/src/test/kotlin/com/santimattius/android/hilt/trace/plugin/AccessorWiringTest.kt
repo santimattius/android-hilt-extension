@@ -2,6 +2,7 @@ package com.santimattius.android.hilt.trace.plugin
 
 import com.santimattius.android.hilt.trace.compiler.catalogue.Catalogue
 import com.santimattius.android.hilt.trace.compiler.catalogue.EntryPoint
+import com.santimattius.android.hilt.trace.compiler.catalogue.InjectionTarget
 import com.santimattius.android.hilt.trace.compiler.catalogue.JsonWriter
 import com.santimattius.android.hilt.trace.plugin.asm.readClass
 import java.io.File
@@ -35,6 +36,8 @@ class AccessorWiringTest {
         // One begin, then an end on the normal path and one in the catch-all handler.
         assertEquals(output, listOf("begin", "end", "end"), facadeCalls(singleton, "consumer"))
         assertEquals(output, emptyList<String>(), facadeCalls(singleton, "other"))
+        // Rule J has no injection target here, so the inject method is not a match.
+        assertEquals(output, emptyList<String>(), facadeCalls(singleton, "injectThing"))
         // The catalogued accessor of the second class has a branch: the class is replayed exactly as read.
         val activity = transformed("DaggerApp_HiltComponents_ActivityC\$ActivityCImpl")
         assertTrue(activity.methods.any { it.name == "branchy" })
@@ -46,8 +49,19 @@ class AccessorWiringTest {
     fun `without a catalogue the build warns once and the component classes are left alone`() {
         val output = build(catalogue = null)
 
-        assertEquals(output, emptyList<String>(), facadeCalls(transformed("DaggerApp_HiltComponents_SingletonC\$SingletonCImpl"), "consumer"))
+        val singleton = transformed("DaggerApp_HiltComponents_SingletonC\$SingletonCImpl")
+        assertEquals(output, emptyList<String>(), facadeCalls(singleton, "consumer") + facadeCalls(singleton, "injectThing"))
         assertEquals(output, 1, Regex("no catalogue found").findAll(output).count())
+    }
+
+    @Test
+    fun `an injection target alone makes the factory wrap the inject method and nothing else`() {
+        val output = build(catalogue = emptyList(), targets = listOf(InjectionTarget("fixture.Thing")))
+
+        val singleton = transformed("DaggerApp_HiltComponents_SingletonC\$SingletonCImpl")
+        assertEquals(output, listOf("begin", "end", "end"), facadeCalls(singleton, "injectThing"))
+        assertEquals(output, emptyList<String>(), facadeCalls(singleton, "consumer") + facadeCalls(singleton, "other"))
+        assertEquals(output, 0, Regex("no catalogue found").findAll(output).count())
     }
 
     private fun facadeCalls(node: ClassNode, method: String): List<String> =
@@ -60,7 +74,7 @@ class AccessorWiringTest {
         return readClass(checkNotNull(file) { "no transformed $className" }.readBytes())
     }
 
-    private fun build(catalogue: List<EntryPoint>?): String {
+    private fun build(catalogue: List<EntryPoint>?, targets: List<InjectionTarget> = emptyList()): String {
         val root: File = projectDir.root
         root.resolve("settings.gradle.kts").writeText(
             """
@@ -81,10 +95,11 @@ class AccessorWiringTest {
             """.trimIndent(),
         )
         root.resolve("src/main/AndroidManifest.xml").apply { parentFile.mkdirs() }.writeText("<manifest />")
-        source("DaggerApp_HiltComponents_SingletonC", "SingletonCImpl", "public String consumer() { return \"c\"; } public String other() { return \"o\"; }")
+        source("DaggerApp_HiltComponents_SingletonC", "SingletonCImpl", "public String consumer() { return \"c\"; } public String other() { return \"o\"; } public void injectThing(Thing thing) { thing.touch(); }")
         source("DaggerApp_HiltComponents_ActivityC", "ActivityCImpl", "public String branchy(boolean b) { return b ? \"y\" : \"n\"; }")
+        root.resolve("src/main/java/fixture/Thing.java").writeText("package fixture; public final class Thing { public void touch() {} }")
         catalogue?.let {
-            val json = JsonWriter.write(Catalogue(":app", emptyList(), it, emptyList()))
+            val json = JsonWriter.write(Catalogue(":app", emptyList(), it, targets))
             root.resolve("build/generated/ksp/debug/resources/META-INF/hilt-trace/app.json").apply { parentFile.mkdirs() }.writeText(json)
         }
         return GradleRunner.create().withProjectDir(root).withPluginClasspath()
