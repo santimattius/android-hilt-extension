@@ -42,25 +42,34 @@ internal fun wrapCaseBodies(method: MethodNode, bodies: List<CaseBody>, nameOf: 
         val name = nameOf(body) ?: continue
         val (tryStart, tryEnd, handler) = Triple(LabelNode(), LabelNode(), LabelNode())
         method.instructions.insert(body.label, InsnList().apply {
-            add(LdcInsnNode(CATEGORY_CREATE))
-            add(LdcInsnNode(name))
-            add(MethodInsnNode(INVOKESTATIC, FACADE, "begin", BEGIN_DESCRIPTOR, false))
-            add(VarInsnNode(ASTORE, token))
+            add(beginSpan(CATEGORY_CREATE, name, token))
             add(tryStart)
         })
         method.instructions.insertBefore(body.ret, InsnList().apply {
             add(tryEnd)
-            add(VarInsnNode(ALOAD, token))
-            add(MethodInsnNode(INVOKESTATIC, FACADE, "end", END_DESCRIPTOR, false))
+            add(endSpan(token))
         })
         method.instructions.insert(body.ret, InsnList().apply {
             add(handler)
-            add(VarInsnNode(ALOAD, token))
-            add(MethodInsnNode(INVOKESTATIC, FACADE, "end", END_DESCRIPTOR, false))
+            add(endSpan(token))
             add(InsnNode(ATHROW))
         })
         method.tryCatchBlocks.add(TryCatchBlockNode(tryStart, tryEnd, handler, null))
     }
+}
+
+/** `token = HiltTrace.begin(category, name)`: the call that opens a slice, shared by every rule. */
+internal fun beginSpan(category: String, name: String, token: Int) = InsnList().apply {
+    add(LdcInsnNode(category))
+    add(LdcInsnNode(name))
+    add(MethodInsnNode(INVOKESTATIC, FACADE, "begin", BEGIN_DESCRIPTOR, false))
+    add(VarInsnNode(ASTORE, token))
+}
+
+/** `HiltTrace.end(token)`: the call that closes a slice; it leaves the operand stack as it found it. */
+internal fun endSpan(token: Int) = InsnList().apply {
+    add(VarInsnNode(ALOAD, token))
+    add(MethodInsnNode(INVOKESTATIC, FACADE, "end", END_DESCRIPTOR, false))
 }
 
 /**

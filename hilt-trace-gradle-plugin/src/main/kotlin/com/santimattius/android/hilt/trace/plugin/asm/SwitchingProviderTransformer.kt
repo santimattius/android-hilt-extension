@@ -41,8 +41,7 @@ internal fun instrumentSwitchingProvider(
                 is Dispatch.Router -> Unit
                 is Dispatch.Unknown -> return unchanged("unrecognized shape in ${method.name}")
                 is Dispatch.Cases -> {
-                    val copy = MethodNode(ASM9, method.access, method.name, method.desc, method.signature, method.exceptions.toTypedArray())
-                    method.accept(copy)
+                    val copy = copyOf(method)
                     wrapCaseBodies(copy, (locateCaseBodies(copy) as Dispatch.Cases).bodies, nameOf)
                     val scratch = scratchFrames(node, copy, codeLimit) ?: return unchanged("${method.name} exceeds the $codeLimit byte limit")
                     replacements[method] = scratch
@@ -63,10 +62,14 @@ internal fun instrumentSwitchingProvider(
  * warning, if any, goes to [warn] once.
  */
 internal fun instrumentingVisitor(next: ClassVisitor, nameOf: (CaseBody) -> String?, warn: (String) -> Unit): ClassVisitor =
+    bufferedVisitor(next, warn) { instrumentSwitchingProvider(it, nameOf) }
+
+/** The buffering shared by every rule: [instrument] decides on the buffered node, [next] always receives a complete class. */
+internal fun bufferedVisitor(next: ClassVisitor, warn: (String) -> Unit, instrument: (ClassNode) -> Outcome): ClassVisitor =
     object : ClassNode(ASM9) {
         override fun visitEnd() {
             super.visitEnd()
-            instrumentSwitchingProvider(this, nameOf).warning?.let(warn)
+            instrument(this).warning?.let(warn)
             accept(next)
         }
     }
@@ -76,20 +79,27 @@ internal fun transformSwitchingProvider(
     original: ByteArray,
     nameOf: (CaseBody) -> String?,
     codeLimit: Int = MAX_METHOD_BYTES,
-): TransformResult = try {
+): TransformResult = transformClass(original) { instrumentSwitchingProvider(it, nameOf, codeLimit) }
+
+/** The byte array form of [bufferedVisitor]: [original] itself comes back unless [instrument] changed the node. */
+internal fun transformClass(original: ByteArray, instrument: (ClassNode) -> Outcome): TransformResult = try {
     val node = ClassNode().also { ClassReader(original).accept(it, 0) }
-    val outcome = instrumentSwitchingProvider(node, nameOf, codeLimit)
+    val outcome = instrument(node)
     if (outcome.instrumented) TransformResult(ClassWriter(0).also { node.accept(it) }.toByteArray(), null)
     else TransformResult(original, outcome.warning)
 } catch (e: Throwable) {
     TransformResult(original, "Hilt Trace: class left unchanged: ${e.javaClass.simpleName}: ${e.message}")
 }
 
+/** A detached copy of [method], so it can be rewritten without touching the node until every method succeeded. */
+internal fun copyOf(method: MethodNode): MethodNode =
+    MethodNode(ASM9, method.access, method.name, method.desc, method.signature, method.exceptions.toTypedArray()).also(method::accept)
+
 /**
  * Writes [method] alone into a scratch class so ASM computes its frames and maxs, then reads it back.
  * Returns null when the scratch class is larger than the limit; a method above 64 KB throws.
  */
-private fun scratchFrames(owner: ClassNode, method: MethodNode, codeLimit: Int): MethodNode? {
+internal fun scratchFrames(owner: ClassNode, method: MethodNode, codeLimit: Int): MethodNode? {
     val writer = framesWriter()
     writer.visit(owner.version, owner.access, owner.name, owner.signature, owner.superName, owner.interfaces.toTypedArray())
     method.accept(writer)
