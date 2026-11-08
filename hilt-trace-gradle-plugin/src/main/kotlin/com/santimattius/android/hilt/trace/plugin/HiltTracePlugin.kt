@@ -12,7 +12,8 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIB
 /**
  * Applied to the application module only. Registers [HiltTraceClassVisitorFactory] for the
  * variants selected in `hiltTrace { variants }`, so every other variant (release by default) is
- * not touched. `InstrumentationScope.ALL` is needed to reach generated classes of library modules.
+ * not touched and does not package the catalogue files either. `InstrumentationScope.ALL` is needed
+ * to reach generated classes of library modules.
  */
 public class HiltTracePlugin : Plugin<Project> {
 
@@ -45,6 +46,9 @@ public class HiltTracePlugin : Plugin<Project> {
                         parameters.catalogues.from(catalogueRoots(project, variant))
                     }
                     variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
+                } else {
+                    // The catalogue is a compile-time input only and lists the app's binding graph: it must not ship.
+                    variant.packaging.resources.excludes.add(CATALOGUE_RESOURCES)
                 }
             }
         }
@@ -79,6 +83,7 @@ public class HiltTracePlugin : Plugin<Project> {
         const val FAST_INIT_PROPERTY = "dagger.hilt.fastInit"
         const val FAST_INIT_WARNING =
             "Hilt Trace: $FAST_INIT_PROPERTY=false, so Hilt generates no SwitchingProvider; the create rule is skipped."
+        const val CATALOGUE_RESOURCES = "META-INF/hilt-trace/**"
         val CATALOGUE_SOURCE_FORMS = listOf("jar", "directory")
     }
 }
