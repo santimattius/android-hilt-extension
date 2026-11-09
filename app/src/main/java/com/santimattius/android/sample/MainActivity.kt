@@ -11,9 +11,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.santimattius.android.sample.greeting.GreetingRepository
 import com.santimattius.android.sample.ui.theme.SampleTheme
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    // Field injection: Hilt generates injectMainActivity, which the plugin traces as hilt.inject.
+    @Inject
+    lateinit var greetings: GreetingRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -21,7 +30,7 @@ class MainActivity : ComponentActivity() {
             SampleTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "Android",
+                        name = greetings.audienceName(),
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
