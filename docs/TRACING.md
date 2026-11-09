@@ -111,7 +111,7 @@ Tracing 1.x and 2.x share the coordinate `androidx.tracing:tracing`. `hilt-trace
 | Plugin wiring | Gradle TestKit builds of a throwaway Android app: variant selection, packaging, release unchanged. |
 | Sample app | Unit tests, plus the instrumented `TraceCaptureTest`, which records the slices of the real debug build. |
 
-CI runs `./gradlew build` on Linux, with no emulator. A dry run of `build` and `check` schedules the unit tests of every module, the plugin tests and `verifyVersionAlignment`, but no instrumented-test task and not `compileDebugAndroidTestKotlin`. So CI neither runs nor compiles `TraceCaptureTest` or the `hilt-coroutines-runtime` instrumented tests; they were run on an emulator only.
+CI runs on Linux with no emulator. `./gradlew build` schedules the unit tests of every module, the plugin tests and `verifyVersionAlignment`, and CI adds `:app:assembleDebugAndroidTest` and `:hilt-coroutines-runtime:assembleDebugAndroidTest`, so `TraceCaptureTest` and the `hilt-coroutines-runtime` instrumented tests are compiled and packaged but never run there; they were run on an emulator only.
 
 ## Verify it works
 

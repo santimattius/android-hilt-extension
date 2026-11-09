@@ -31,5 +31,7 @@ jobs:
 
       # The root check also runs the checks of the included builds (build-logic and, once it
       # exists, hilt-trace-gradle-plugin) and verifyVersionAlignment.
-      - name: Build and run tests
-        run: ./gradlew build --configuration-cache
+      # The instrumented tests need a device, so CI only compiles and packages them: that keeps their
+      # sources from rotting without an emulator job.
+      - name: Build, run tests and compile the instrumented tests
+        run: ./gradlew build :app:assembleDebugAndroidTest :hilt-coroutines-runtime:assembleDebugAndroidTest --configuration-cache
