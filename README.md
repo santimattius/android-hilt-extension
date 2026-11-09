@@ -22,7 +22,7 @@ All artifacts use the group `com.santimattius.android` and the version from `gra
 | `hilt-trace-gradle-plugin` | Gradle plugin, id `com.santimattius.android.hilt.trace` | Instruments the generated Hilt classes of debug builds. |
 | `hilt-coroutines-runtime` | Android library | `SuspendLazy`, `SuspendProvider`, dispatcher qualifiers, `@ApplicationScope`, `traceCoroutine`. |
 
-Other directories: `:app` (sample, not published), `build-logic/` (convention plugins, not published) and `spike/` (throwaway probes of the first slice, not published).
+Other directories: `:app` (sample, not published), `build-logic/` (convention plugins, not published).
 
 ## Requirements
 
@@ -71,7 +71,7 @@ In this repository the plugin comes from the included build `hilt-trace-gradle-p
 
 ### Library module with Hilt code
 
-Apply the processor so the library's bindings reach the catalogue (copied from the `spike/lib` probe; the dependency is declared as a coordinate here because the artifact is not published):
+Apply the processor so the library's bindings reach the catalogue (the dependency is declared as a coordinate here because the artifact is not published):
 
 ```kotlin
 ksp {
@@ -141,7 +141,6 @@ android-hilt-extension/
 ├── hilt-trace-compiler/        # KSP catalogue processor
 ├── hilt-trace-gradle-plugin/   # Included build: Gradle plugin
 ├── hilt-coroutines-runtime/    # Coroutine helpers
-├── spike/                      # Throwaway probes (not published)
 ├── gradle/
 │   └── libs.versions.toml      # Version catalog
 ├── .github/workflows/          # ci.yml (build and test), publish-maven-central.yml
