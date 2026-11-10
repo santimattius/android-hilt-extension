@@ -1,3 +1,0 @@
-package spikelib
-
-class LibClass

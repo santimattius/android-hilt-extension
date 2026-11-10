@@ -1,5 +1,7 @@
 # Hilt Trace Spike (slice 0)
 
+> **Note:** the throwaway `spike/` modules (`:spike`, `:spike:processor`, `:spike:lib`) were removed from the build once the plugin and the sample covered the same ground. Their sources remain in git history at commit `d478048` (path `spike/`); the `./gradlew :spike:...` commands below were run at that commit. The fixtures under `hilt-trace-gradle-plugin/src/test/resources/fixtures/` are unaffected.
+
 Change: `hilt-trace-and-coroutines`. All evidence was produced with stable versions: AGP 9.5.0 (built-in Kotlin, metadata 2.4.0), Kotlin 2.4.21, KSP 2.3.13, Hilt/Dagger 2.60.1, androidx.tracing 2.0.5, Gradle 9.6.0, JDK 25 daemon. No kapt. The throwaway app lives in `spike/` (`:spike`, `:spike:processor`, `:spike:lib`) and is not release wiring.
 
 ## Verdict table
