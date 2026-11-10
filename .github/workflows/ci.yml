@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # JDK 25 matches the Gradle daemon JVM pinned in gradle/gradle-daemon-jvm.properties.
       # Library bytecode still targets JVM 17 (set by the hiltext.* convention plugins).
