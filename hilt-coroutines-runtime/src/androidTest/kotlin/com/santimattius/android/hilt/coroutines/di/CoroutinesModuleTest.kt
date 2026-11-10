@@ -21,7 +21,7 @@ import org.junit.Test
 /**
  * Hilt component test. [TestCoroutinesModule] replaces the library module for every test in this
  * APK (a `@TestInstallIn` replacement is global), so these tests prove injection with the
- * library's qualifiers, replaceability and the destroy hook against a real Hilt component.
+ * library's qualifiers, replaceability and the closer against a real Hilt component.
  */
 @HiltAndroidTest
 class CoroutinesModuleTest {
@@ -63,7 +63,7 @@ class CoroutinesModuleTest {
     }
 
     @Test
-    fun applicationScopeIsCancelledWhenTheComponentIsDestroyed() {
+    fun closingTheCloserCancelsTheScopeAndItsRunningJob() {
         val started = CompletableDeferred<Unit>()
         val job = scope.launch { started.complete(Unit); awaitCancellation() }
         assertTrue(started.isCompleted)
