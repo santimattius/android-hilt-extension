@@ -11,11 +11,19 @@ composeBom = "2026.09.00"
 appcompat = "1.8.0"
 material = "1.14.0"
 mavenPublish = "0.37.0"
+tracing = "2.0.5"
+hilt = "2.60.1"
+ksp = "2.3.13"
+coroutines = "1.11.0"
+asm = "9.9"
+kctfork = "0.14.0"
+testRunner = "1.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -29,9 +37,33 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-tracing = { group = "androidx.tracing", name = "tracing", version.ref = "tracing" }
+androidx-tracing-wire = { group = "androidx.tracing", name = "tracing-wire", version.ref = "tracing" }
+dagger = { group = "com.google.dagger", name = "dagger", version.ref = "hilt" }
+hilt-core = { group = "com.google.dagger", name = "hilt-core", version.ref = "hilt" }
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
+ksp-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+asm = { group = "org.ow2.asm", name = "asm", version.ref = "asm" }
+asm-tree = { group = "org.ow2.asm", name = "asm-tree", version.ref = "asm" }
+asm-analysis = { group = "org.ow2.asm", name = "asm-analysis", version.ref = "asm" }
+asm-util = { group = "org.ow2.asm", name = "asm-util", version.ref = "asm" }
+kctfork-core = { group = "dev.zacsweers.kctfork", name = "core", version.ref = "kctfork" }
+kctfork-ksp = { group = "dev.zacsweers.kctfork", name = "ksp", version.ref = "kctfork" }
+# Build-logic compile-time dependencies (convention plugins)
+android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+maven-publish-gradlePlugin = { group = "com.vanniktech", name = "gradle-maven-publish-plugin", version.ref = "mavenPublish" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

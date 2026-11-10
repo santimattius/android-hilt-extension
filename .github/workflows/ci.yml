@@ -7,7 +7,7 @@ on:
   push:
     branches: [main, master]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, 'feat/**']
 
 jobs:
   build:
@@ -17,15 +17,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # JDK 25 matches the Gradle daemon JVM pinned in gradle/gradle-daemon-jvm.properties.
+      # Library bytecode still targets JVM 17 (set by the hiltext.* convention plugins).
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: "17"
+          java-version: "25"
           cache: "gradle"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build and run tests
-        run: ./gradlew build --no-configuration-cache
+      # The root check also runs the checks of the included builds (build-logic and, once it
+      # exists, hilt-trace-gradle-plugin) and verifyVersionAlignment.
+      # The instrumented tests need a device, so CI only compiles and packages them: that keeps their
+      # sources from rotting without an emulator job.
+      - name: Build, run tests and compile the instrumented tests
+        run: ./gradlew build :app:assembleDebugAndroidTest :hilt-coroutines-runtime:assembleDebugAndroidTest --configuration-cache
