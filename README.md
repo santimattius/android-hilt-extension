@@ -160,7 +160,7 @@ android-hilt-extension/
 # Assemble debug and release of the sample and run every unit test and check
 ./gradlew :app:assembleDebug :app:assembleRelease check
 
-# Instrumented tests need a device or emulator (CI has none)
+# Instrumented tests need a device or emulator (CI only compiles them)
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
