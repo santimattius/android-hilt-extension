@@ -11,6 +11,7 @@ import androidx.tracing.PerfettoTracer
 import androidx.tracing.PooledTracePacketArray
 import androidx.tracing.TraceContext
 import androidx.tracing.Tracer
+import com.santimattius.android.sample.demo.DemoId
 import dagger.hilt.internal.GeneratedComponentManagerHolder
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -78,7 +79,9 @@ class TraceCaptureTest {
 
     private fun install(enabled: (String) -> Boolean) {
         // The tracer's own meta category stays off so no flush slice pollutes the capture.
-        val gate = { category: String -> (category.startsWith("hilt.") || category == PROBE) && enabled(category) }
+        val gate = { category: String ->
+            (category.startsWith("hilt.") || category == PROBE || category == COROUTINE) && enabled(category)
+        }
         val context = TraceContext(sink, true, gate)
         context.createProcessTrack(id = 1, name = "trace-capture-test")
         traceContext = context
@@ -96,7 +99,11 @@ class TraceCaptureTest {
      * Launches the real activity on a new graph while a probe slice from outside Hilt wraps the launch,
      * so a capture that shows no `hilt.*` slice still proves the tracer and the sink were live.
      */
-    private fun captureLaunch(enabled: (String) -> Boolean): Map<Long, List<Node>> {
+    private fun captureLaunch(
+        enabled: (String) -> Boolean,
+        drive: (MainActivity) -> Unit = {},
+        settled: (List<Slice>) -> Boolean = { true },
+    ): Map<Long, List<Node>> {
         install(enabled)
         discardProcessGraph()
         val tracer = Tracer.global
@@ -107,11 +114,42 @@ class TraceCaptureTest {
         }
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { assertEquals("Perfetto", it.greetings.audienceName()) }
+            // Close the probe first: the settle loop waits for every begin to have its end.
+            probe?.closeable?.close()
+            scenario.onActivity(drive)
+            awaitSettled(settled)
         }
-        probe?.closeable?.close()
         traceContext!!.flush()
         return forest(sink.slices()).also { Log.i(TAG, dump(it)) }
     }
+
+    /**
+     * Demo actions that run asynchronously (a recomposition, a service, a coroutine) get a bounded wait.
+     * The capture counts as settled when the expected slices are there, every begin has its end, and
+     * nothing new arrived for [QUIET_MILLIS]: a coroutine closes and reopens its section at each
+     * suspension, so a balanced count alone can be a pause in the middle of the action.
+     */
+    private fun awaitSettled(settled: (List<Slice>) -> Boolean) {
+        val deadline = System.nanoTime() + SETTLE_TIMEOUT_NANOS
+        var lastCount = -1
+        var quietSince = 0L
+        while (true) {
+            traceContext!!.flush()
+            val slices = sink.slices()
+            val balanced = slices.count { it.type == BEGIN } == slices.count { it.type == END }
+            val now = System.nanoTime()
+            if (slices.size != lastCount) {
+                lastCount = slices.size
+                quietSince = now
+            }
+            if (balanced && settled(slices) && now - quietSince >= QUIET_MILLIS * 1_000_000) return
+            check(now < deadline) { "the expected slices did not appear within the timeout" }
+            Thread.sleep(POLL_MILLIS)
+        }
+    }
+
+    private fun List<Slice>.hasBegin(category: String, name: String) =
+        any { it.type == BEGIN && it.category == category && it.name == name }
 
     /** Builds the slice tree of every track and fails when begin and end events do not balance. */
     private fun forest(slices: List<Slice>): Map<Long, List<Node>> {
@@ -146,7 +184,7 @@ class TraceCaptureTest {
 
     @Test
     fun categoriesOnShowCreateSlicesNestedInTheInjectSpan() {
-        val tracks = captureLaunch { true }
+        val tracks = captureLaunch({ true })
 
         val inject = tracks.allNodes().single { it.category == INJECT }
         assertEquals("MainActivity.members", inject.name)
@@ -159,21 +197,111 @@ class TraceCaptureTest {
 
     @Test
     fun categoriesOffShowNoHiltSlice() {
-        val tracks = captureLaunch { it == PROBE }
+        val tracks = captureLaunch({ it == PROBE })
 
         assertEquals(listOf(PROBE), tracks.allNodes().map { it.category })
     }
 
     @Test
     fun enablingOnlyInjectShowsNoCreateSlice() {
-        val tracks = captureLaunch { it == INJECT }
+        val tracks = captureLaunch({ it == INJECT })
 
         val nodes = tracks.allNodes()
         assertEquals(listOf(INJECT to "MainActivity.members"), nodes.map { it.category to it.name })
         assertTrue(nodes.single().children.isEmpty())
     }
 
+    @Test
+    fun viewModelCreationShowsACreateSlice() {
+        val tracks = captureLaunch({ true }, { it.runDemo(DemoId.VIEWMODEL_INJECTION) })
+
+        assertEquals(1, tracks.allNodes().count { it.category == CREATE && it.name == SCRATCH_VIEW_MODEL })
+    }
+
+    @Test
+    fun viewInjectionShowsAnInjectSlice() {
+        val tracks = captureLaunch(
+            { true },
+            { it.runDemo(DemoId.VIEW_INJECTION) },
+            { it.hasBegin(INJECT, "DemoView.members") },
+        )
+
+        assertEquals(1, tracks.allNodes().count { it.category == INJECT && it.name == "DemoView.members" })
+    }
+
+    @Test
+    fun serviceInjectionShowsAnInjectSlice() {
+        val tracks = captureLaunch(
+            { true },
+            { it.runDemo(DemoId.SERVICE_INJECTION) },
+            { it.hasBegin(INJECT, "DemoService.members") },
+        )
+
+        assertEquals(1, tracks.allNodes().count { it.category == INJECT && it.name == "DemoService.members" })
+    }
+
+    @Test
+    fun aSingletonIsCreatedOnceNoMatterHowOftenItIsRequested() {
+        // Each run requests the binding twice, and the card is run twice: four requests, one creation.
+        val tracks = captureLaunch(
+            { true },
+            { repeat(2) { _ -> it.runDemo(DemoId.SINGLETON_BINDING) } },
+            { it.hasBegin(CREATE, SINGLETON_COUNTER) },
+        )
+
+        assertEquals(1, tracks.allNodes().count { it.category == CREATE && it.name == SINGLETON_COUNTER })
+    }
+
+    @Test
+    fun anUnscopedProviderCreatesANewInstanceOnEveryGet() {
+        val tracks = captureLaunch(
+            { true },
+            { it.runDemo(DemoId.SUSPEND_PROVIDER) },
+            { slices -> slices.count { it.type == BEGIN && it.name == FRESH_WIDGET } >= 2 },
+        )
+
+        assertEquals(2, tracks.allNodes().count { it.category == CREATE && it.name == FRESH_WIDGET })
+    }
+
+    @Test
+    fun lazyAwaitShowsACreateSliceForTheResolvedBinding() {
+        val tracks = captureLaunch(
+            { true },
+            { it.runDemo(DemoId.LAZY_AWAIT) },
+            { it.hasBegin(CREATE, EXPENSIVE_SERVICE) },
+        )
+
+        assertEquals(1, tracks.allNodes().count { it.category == CREATE && it.name == EXPENSIVE_SERVICE })
+    }
+
+    @Test
+    fun traceCoroutineShowsItsSectionWhenTheCategoryIsEnabled() {
+        val tracks = captureLaunch(
+            { true },
+            { it.runDemo(DemoId.TRACE_COROUTINE) },
+            { it.hasBegin(COROUTINE, "refresh") },
+        )
+
+        assertTrue(tracks.allNodes().any { it.category == COROUTINE && it.name == "refresh" })
+    }
+
+    @Test
+    fun traceCoroutineShowsNothingWhenItsCategoryIsDisabled() {
+        val tracks = captureLaunch({ it != COROUTINE }, { it.runDemo(DemoId.TRACE_COROUTINE) })
+
+        assertTrue(tracks.allNodes().none { it.category == COROUTINE })
+    }
+
     private companion object {
+        const val SETTLE_TIMEOUT_NANOS = 10_000_000_000L
+        const val POLL_MILLIS = 50L
+        const val QUIET_MILLIS = 400L
+        const val COROUTINE = "sample.coroutine"
+        const val DEMO_PACKAGE = "com.santimattius.android.sample.demo"
+        const val SCRATCH_VIEW_MODEL = "com.santimattius.android.sample.android.ScratchViewModel"
+        const val SINGLETON_COUNTER = "$DEMO_PACKAGE.SingletonCounter"
+        const val FRESH_WIDGET = "$DEMO_PACKAGE.FreshWidget"
+        const val EXPENSIVE_SERVICE = "$DEMO_PACKAGE.ExpensiveService"
         const val TAG = "TraceCaptureTest"
         const val BEGIN = 1
         const val END = 2
