@@ -48,6 +48,8 @@ android {
         // bytecode transform task resolves its dependencies unless Android resources and unit tests are
         // enabled for the variant. The failure is independent of the Hilt Trace plugin.
         unitTests.isIncludeAndroidResources = true
+        // androidx.tracing reads android.os.Process while initializing; the demo unit tests call it.
+        unitTests.isReturnDefaultValues = true
     }
 }
 
@@ -75,6 +77,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(project(":hilt-coroutines-runtime"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -86,6 +90,7 @@ dependencies {
     implementation(libs.androidx.tracing)
     debugImplementation(libs.androidx.tracing.wire)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
