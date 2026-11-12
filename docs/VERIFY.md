@@ -29,7 +29,7 @@ What the app suite covers:
 | Test class | Covers |
 |------------|--------|
 | `TraceCaptureTest` | Installs a recording tracer and checks the real debug build: `hilt.create`/`hilt.inject` nesting, categories off and on independently, plus the section of every sample action (ViewModel, View, Service, singleton once, `Provider` per get, `Lazy`, `traceCoroutine` on and off). |
-| `MainActivityDemoTest` | Drives the real activity and checks the visible result of each card. |
+| `MainActivityDemoTest` | Drives the real activity and asserts every stable result clause on each card: activity recreation and its greeting, the injected view's own text, all dispatcher qualifiers, provider/lazy outcomes, and cancellation behavior. |
 | `DemoScreenTest` | The stateless screen: empty state, click callback, result, running state. |
 
 The Gradle exit status can be 0 even when the instrumentation run failed; read the XML in `app/build/outputs/androidTest-results/connected/` (`tests` above 0, `failures` and `errors` 0).

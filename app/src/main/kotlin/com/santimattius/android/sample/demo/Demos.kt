@@ -12,6 +12,7 @@ import androidx.tracing.DelicateTracingApi
 import androidx.tracing.Tracer
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -93,15 +94,21 @@ class SuspendProviderDemo @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : SuspendDemo {
     override suspend fun run(): String {
-        val scopedProvider = scoped.suspending(io)
-        val unscopedProvider = unscoped.suspending(io)
+        val getThread = AtomicReference<String>()
+        val scopedProvider = Provider {
+            getThread.set(threadName())
+            scoped.get()
+        }.suspending(io)
+        val unscopedProvider = Provider {
+            getThread.set(threadName())
+            unscoped.get()
+        }.suspending(io)
         val sameScoped = scopedProvider.get() === scopedProvider.get()
         val differentUnscoped = unscopedProvider.get() !== unscopedProvider.get()
-        val thread = withContext(io) { threadName() }
         return listOf(
             "scoped: same instance on every get(): $sameScoped",
             "unscoped: new instance on every get(): $differentUnscoped",
-            "get() ran on: $thread",
+            "get() ran on: ${getThread.get()}",
         ).joinToString("\n")
     }
 }
