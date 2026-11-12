@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "module": ":mixed",
+  "bindings": [
+    {"kind": "INJECT", "type": "p.ApiImpl", "qualifier": null, "scope": null, "owner": "p.ApiImpl", "method": "<init>"},
+    {"kind": "INJECT", "type": "p.Bar", "qualifier": null, "scope": "javax.inject.Singleton", "owner": "p.Bar", "method": "<init>"},
+    {"kind": "BINDS", "type": "p.Api", "qualifier": null, "scope": null, "owner": "p.BindModule", "method": "bindApi"},
+    {"kind": "INJECT", "type": "p.Foo", "qualifier": null, "scope": null, "owner": "p.Foo", "method": "<init>"},
+    {"kind": "PROVIDES", "type": "kotlin.String", "qualifier": "javax.inject.Named(value=greeting)", "scope": null, "owner": "p.ProvideModule", "method": "greeting"},
+    {"kind": "ASSISTED_INJECT", "type": "p.Widget", "qualifier": null, "scope": null, "owner": "p.Widget", "method": "<init>"}
+  ],
+  "entryPoints": [
+    {"interface": "p.Exposed", "method": "bar", "descriptor": "()Lp/Bar;", "component": "dagger.hilt.components.SingletonComponent"},
+    {"interface": "p.Exposed", "method": "greeting", "descriptor": "()Ljava/lang/String;", "component": "dagger.hilt.components.SingletonComponent"},
+    {"interface": "p.Exposed", "method": "inject", "descriptor": "(Lp/MainActivity;)V", "component": "dagger.hilt.components.SingletonComponent"}
+  ],
+  "injectionTargets": [
+    {"type": "p.MainActivity"}
+  ]
+}

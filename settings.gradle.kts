@@ -1,4 +1,6 @@
 pluginManagement {
+    includeBuild("build-logic")
+    includeBuild("hilt-trace-gradle-plugin")
     repositories {
         google {
             content {
@@ -19,6 +21,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "android-library-template"
+rootProject.name = "android-hilt-extension"
 include(":app")
-include(":library")
+include(":hilt-trace-runtime")
+include(":hilt-coroutines-runtime")
+include(":hilt-trace-compiler")
