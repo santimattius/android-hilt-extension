@@ -11,7 +11,7 @@ kotlin {
     // The catalogue model and merger are shared with :hilt-trace-compiler by source (they have no KSP
     // imports), so no extra artifact is published and their tests stay in :hilt-trace-compiler.
     sourceSets.main {
-        kotlin.srcDir("../hilt-trace-compiler/src/main/kotlin/com/santimattius/android/hilt/trace/compiler/catalogue")
+        kotlin.srcDir("../hilt-trace-compiler/src/main/kotlin/io/github/santimattius/android/hilt/trace/compiler/catalogue")
     }
 }
 
@@ -60,7 +60,7 @@ gradlePlugin {
     plugins {
         register("hiltTrace") {
             id = "io.github.santimattius.android.hilt.trace"
-            implementationClass = "com.santimattius.android.hilt.trace.plugin.HiltTracePlugin"
+            implementationClass = "io.github.santimattius.android.hilt.trace.plugin.HiltTracePlugin"
             displayName = "Hilt trace instrumentation"
             description = "Adds Perfetto trace slices around Hilt object creation and injection in debug variants."
         }

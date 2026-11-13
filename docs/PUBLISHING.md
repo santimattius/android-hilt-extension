@@ -102,4 +102,4 @@ The workflow runs on JDK 25 (the Gradle daemon JVM pinned in `gradle/gradle-daem
 ## Customizing POM and coordinates
 
 - **Coordinates**: `libraryGroupId` and `libraryVersion` in `gradle.properties` (plus the included-build defaults described above). The artifact id is the module name.
-- **POM** (name, description, URL, license, developers, SCM): configured in `build-logic/src/main/kotlin/com/santimattius/android/hilt/buildlogic/PublishingConventionPlugin.kt`. Override it with `POM_*` properties (`POM_DESCRIPTION`, `POM_INCEPTION_YEAR`, `POM_URL`, `POM_DEVELOPER_ID`, `POM_DEVELOPER_NAME`, `POM_DEVELOPER_URL`, `POM_SCM_URL`) in `gradle.properties`.
+- **POM** (name, description, URL, license, developers, SCM): configured in `build-logic/src/main/kotlin/io/github/santimattius/android/hilt/buildlogic/PublishingConventionPlugin.kt`. Override it with `POM_*` properties (`POM_DESCRIPTION`, `POM_INCEPTION_YEAR`, `POM_URL`, `POM_DEVELOPER_ID`, `POM_DEVELOPER_NAME`, `POM_DEVELOPER_URL`, `POM_SCM_URL`) in `gradle.properties`.

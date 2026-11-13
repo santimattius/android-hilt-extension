@@ -2,7 +2,7 @@
 
 Dispatcher and scope qualifiers, suspending adapters for `Provider` and `Lazy`, a suspending lazy, and a trace section that follows a coroutine. Prerequisite: [Setup](SETUP.md#coroutine-helpers). Related: [Tracing](TRACING.md), [Limitations](LIMITATIONS.md).
 
-Artifact: `hilt-coroutines-runtime`. Packages: `com.santimattius.android.hilt.coroutines` (`traceCoroutine`), `.di` (qualifiers, module, closer) and `.suspend` (adapters). The module runs `explicitApi()`; everything below is public API.
+Artifact: `hilt-coroutines-runtime`. Packages: `io.github.santimattius.android.hilt.coroutines` (`traceCoroutine`), `.di` (qualifiers, module, closer) and `.suspend` (adapters). The module runs `explicitApi()`; everything below is public API.
 
 ## Dispatchers and scope
 

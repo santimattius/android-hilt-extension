@@ -13,11 +13,11 @@ val androidTargetSdkVersion: String by project
 val libraryGroupId: String by project
 
 android {
-    namespace = "com.santimattius.android.sample"
+    namespace = "io.github.santimattius.android.sample"
     compileSdk = androidTargetSdkVersion.toInt()
 
     defaultConfig {
-        applicationId = "com.santimattius.android.sample"
+        applicationId = "io.github.santimattius.android.sample"
         minSdk = androidMinSdkVersion.toInt()
         targetSdk = androidTargetSdkVersion.toInt()
         versionCode = 1
