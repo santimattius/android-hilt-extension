@@ -308,6 +308,33 @@ class TraceCaptureTest {
     }
 
     @Test
+    fun mainThreadCardCreatesTheChainOnTheMainTrackWhenBlockingAndOnAWorkerTrackWhenSuspending() {
+        // A probe slice opened on the main thread names the main thread's track.
+        val tracks = captureLaunch(
+            { true },
+            {
+                val tracer = Tracer.global
+                tracer.beginSectionWithMetadata(PROBE, "main-thread", null, false).also {
+                    it.metadata.dispatchToTraceSink()
+                    it.closeable.close()
+                }
+                it.runDemo(DemoId.COMPLEX_GRAPH_MAIN_THREAD)
+            },
+            { slices -> slices.count { it.type == BEGIN && it.name == "$DEMO_PACKAGE.ChainA" } >= 2 },
+        )
+        val mainTrack = tracks.entries.single { (_, roots) -> roots.any { it.name == "main-thread" } }.key
+        val onMain = tracks.getValue(mainTrack).flatMap { listOf(it) + it.descendants() }
+        val offMain = tracks.filterKeys { it != mainTrack }.allNodes()
+
+        // Both scenarios build the same nested chain and fan-out; only the track differs.
+        listOf(onMain, offMain).forEach { nodes ->
+            var level = nodes.single { it.name == "$DEMO_PACKAGE.ChainA" }
+            listOf("B", "C", "D", "E").forEach { next -> level = level.children.single { it.name == "$DEMO_PACKAGE.Chain$next" } }
+            assertEquals(3, nodes.single { it.name == "$DEMO_PACKAGE.WideFanOut" }.children.size)
+        }
+    }
+
+    @Test
     fun traceCoroutineShowsItsSectionWhenTheCategoryIsEnabled() {
         val tracks = captureLaunch(
             { true },

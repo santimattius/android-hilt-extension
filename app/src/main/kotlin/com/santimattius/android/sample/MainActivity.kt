@@ -8,7 +8,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
@@ -60,6 +62,11 @@ class MainActivity : ComponentActivity() {
                                 androidx.compose.runtime.key(viewRuns) {
                                     AndroidView(factory = { DemoView(it) })
                                 }
+                            }
+                            if (id == DemoId.COMPLEX_GRAPH_MAIN_THREAD) {
+                                // Always spinning; it freezes while the main thread is blocked.
+                                Text("Live animation (freezes while the main thread is blocked):")
+                                CircularProgressIndicator()
                             }
                         },
                     )

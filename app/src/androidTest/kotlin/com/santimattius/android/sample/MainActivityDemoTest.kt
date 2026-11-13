@@ -1,5 +1,7 @@
 package com.santimattius.android.sample
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
@@ -12,6 +14,7 @@ import com.santimattius.android.sample.ui.nodeInList
 import com.santimattius.android.sample.ui.resultTag
 import com.santimattius.android.sample.ui.runTag
 import org.hamcrest.Matchers.containsString
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -130,6 +133,23 @@ class MainActivityDemoTest {
         "Same graph behind Lazy: resolve",
         "Slow @Singleton",
     )
+
+    @Test
+    fun mainThreadCardShowsABlockedMainThreadAgainstAFreeOne() {
+        run(
+            DemoId.COMPLEX_GRAPH_MAIN_THREAD,
+            "SIMULATED",
+            "measured on this device",
+            "On the main thread (blocking get):",
+            "Off the main thread (Provider.suspending):",
+        )
+
+        val text = compose.nodeInList(resultTag(DemoId.COMPLEX_GRAPH_MAIN_THREAD))
+            .fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)!!.joinToString("") { it.text }
+        val gaps = Regex("longest gap between frames (\\d+) ms").findAll(text).map { it.groupValues[1].toLong() }.toList()
+        // The blocked main thread cannot draw during the 270 ms of simulated work; the free one keeps drawing.
+        assertTrue(text, gaps.size == 2 && gaps[0] >= 200 && gaps[1] < gaps[0])
+    }
 
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L
