@@ -12,7 +12,7 @@
 | kotlinx-coroutines | 1.11.0 | `gradle/libs.versions.toml` |
 | Gradle | 9.6.0 | `gradle/wrapper/gradle-wrapper.properties` |
 | JDK | 25 runs the build; library bytecode targets 17 | `gradle/gradle-daemon-jvm.properties`, `build-logic` |
-| `minSdk` / `compileSdk` | 24 / 37 | `gradle.properties` |
+| `minSdk` / library `compileSdk` | 24 / 35 (the sample app compiles against 37) | `gradle.properties` |
 
 Compatibility beyond this set is described in [Supported toolchains](#supported-toolchains); anything not listed there has not been tested. Two couplings matter:
 
@@ -33,7 +33,7 @@ The artifacts are compiled with Kotlin language and API level 2.2 and their POMs
 - **Floor.** AGP 9.1.1 and Kotlin 2.2.21 are the lowest versions that were tried, not a proven minimum.
 - **Hilt and Kotlin metadata.** Hilt 2.59.2 reads Kotlin metadata up to 2.3.0, so it works with consumers up to Kotlin 2.3. A Kotlin 2.4 consumer needs Hilt 2.60.1. This comes from Hilt, not from these artifacts.
 - **KSP.** KSP 2.3.x is decoupled from the Kotlin version, so the same KSP release was used with Kotlin 2.2.21 and 2.4.21.
-- **compileSdk.** `hilt-trace-runtime` requires consumers to compile against Android 37 or later.
+- **compileSdk.** The libraries compile against Android 35, so a consumer needs compileSdk 35 or later for them. This was checked with a consumer that uses `androidx.activity` 1.10.1 and `androidx.tracing` 2.0.5. Your other AndroidX dependencies may require a higher compileSdk on their own.
 
 ## Application module
 

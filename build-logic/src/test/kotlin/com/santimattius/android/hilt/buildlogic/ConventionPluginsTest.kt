@@ -20,7 +20,7 @@ class ConventionPluginsTest {
     @Test
     fun `android library convention applies AGP with SDK levels from properties`() {
         val output = runReport(
-            properties = "androidMinSdkVersion=24\nandroidTargetSdkVersion=36",
+            properties = "androidMinSdkVersion=24\nandroidLibraryCompileSdkVersion=36",
             buildScript = """
                 plugins { id("hiltext.android-library") }
                 android { namespace = "sample.android" }
@@ -41,7 +41,7 @@ class ConventionPluginsTest {
     @Test
     fun `android library convention reads different SDK levels`() {
         val output = runReport(
-            properties = "androidMinSdkVersion=26\nandroidTargetSdkVersion=34",
+            properties = "androidMinSdkVersion=26\nandroidLibraryCompileSdkVersion=34",
             buildScript = """
                 plugins { id("hiltext.android-library") }
                 android { namespace = "sample.android" }
@@ -96,7 +96,7 @@ class ConventionPluginsTest {
     @Test
     fun `android library convention pins the minimum Kotlin language level and core libraries`() {
         val output = runReport(
-            properties = "androidMinSdkVersion=24\nandroidTargetSdkVersion=36",
+            properties = "androidMinSdkVersion=24\nandroidLibraryCompileSdkVersion=36",
             buildScript = """
                 plugins { id("hiltext.android-library") }
                 android { namespace = "sample.android" }

@@ -15,7 +15,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
         target.pluginManager.apply("com.android.library")
         target.configureKotlinCompatibility()
         target.extensions.configure<LibraryExtension> {
-            compileSdk = target.intProperty("androidTargetSdkVersion")
+            compileSdk = target.intProperty("androidLibraryCompileSdkVersion")
             defaultConfig {
                 minSdk = target.intProperty("androidMinSdkVersion")
                 testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
