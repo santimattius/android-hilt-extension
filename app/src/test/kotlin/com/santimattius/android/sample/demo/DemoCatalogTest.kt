@@ -27,5 +27,6 @@ class DemoCatalogTest {
         assertTrue(sections.getValue(DemoId.VIEWMODEL_INJECTION)!!.startsWith("hilt.create "))
         assertEquals("sample.coroutine refresh", sections[DemoId.TRACE_COROUTINE])
         assertTrue(sections.getValue(DemoId.COMPLEX_GRAPH)!!.startsWith("hilt.create "))
+        assertTrue(sections.getValue(DemoId.COMPLEX_GRAPH_MAIN_THREAD)!!.startsWith("hilt.create "))
     }
 }

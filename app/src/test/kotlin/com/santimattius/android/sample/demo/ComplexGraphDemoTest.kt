@@ -8,21 +8,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Simulated work advances a fake clock instead of sleeping, so elapsed times are exact and instant. */
-private class FakeTime : SimulatedWork, MonotonicClock {
+internal class FakeTime : SimulatedWork, MonotonicClock {
     var nanos = 0L
     val performed = mutableListOf<Long>()
+    val threads = mutableListOf<String>()
 
     override fun perform(millis: Long) {
         performed += millis
+        threads += Thread.currentThread().name
         nanos += millis * NANOS_PER_MILLI
     }
 
     override fun nanoTime(): Long = nanos
 }
 
-private const val NANOS_PER_MILLI = 1_000_000L
+internal const val NANOS_PER_MILLI = 1_000_000L
 
-private fun chain(time: FakeTime) = ChainA(
+internal fun chain(time: FakeTime) = ChainA(
     time,
     Provider {
         ChainB(
@@ -32,7 +34,7 @@ private fun chain(time: FakeTime) = ChainA(
     },
 )
 
-private fun fanOut(time: FakeTime) = WideFanOut(
+internal fun fanOut(time: FakeTime) = WideFanOut(
     Provider { SlowOne(time) },
     Provider { SlowTwo(time) },
     Provider { SlowThree(time) },

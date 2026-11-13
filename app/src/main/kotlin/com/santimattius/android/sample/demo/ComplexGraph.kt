@@ -1,7 +1,10 @@
 package com.santimattius.android.sample.demo
 
 import com.santimattius.android.hilt.coroutines.di.DefaultDispatcher
+import com.santimattius.android.hilt.coroutines.di.MainDispatcher
+import com.santimattius.android.hilt.coroutines.suspend.suspending
 import dagger.Lazy
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -132,6 +135,54 @@ class ComplexGraphDemo @Inject constructor(
         val start = clock.nanoTime()
         val value = block()
         return value to (clock.nanoTime() - start) / NANOS_PER_MILLI
+    }
+
+    private companion object {
+        const val NANOS_PER_MILLI = 1_000_000L
+    }
+}
+
+/**
+ * Resolves the same deep chain and wide fan-out twice and samples the frame gaps of each: once as a
+ * blocking `get()` on the main thread, once through `Provider.suspending` on a worker. The work is
+ * SIMULATED; the frame numbers are measured on the device that runs it.
+ */
+class MainThreadGraphDemo @Inject constructor(
+    private val chain: Provider<ChainA>,
+    private val fanOut: Provider<WideFanOut>,
+    private val sampler: FrameSampler,
+    private val clock: MonotonicClock,
+    @MainDispatcher private val main: CoroutineDispatcher,
+    @DefaultDispatcher private val default: CoroutineDispatcher,
+) : SuspendDemo {
+
+    override suspend fun run(): String {
+        // Eager and blocking on purpose: what a graph resolved in a click handler or onCreate does.
+        val blocked = measure { withContext(main) { chain.get(); fanOut.get() } }
+        val offMainChain = chain.suspending(default)
+        val offMainFanOut = fanOut.suspending(default)
+        val free = measure { offMainChain.get(); offMainFanOut.get() }
+        val (blockedMillis, blockedFrames) = blocked
+        val (freeMillis, freeFrames) = free
+        return listOf(
+            "SIMULATED work: constructors sleep. Frame gaps are measured on this device " +
+                "(${"%.1f".format(Locale.ROOT, blockedFrames.frameIntervalMillis)} ms per frame; " +
+                "janky = gap over 1.5 frames).",
+            "On the main thread (blocking get): $blockedMillis ms, " +
+                "longest gap between frames ${blockedFrames.longestGapMillis} ms, janky frames ${blockedFrames.jankyFrames}",
+            "Off the main thread (Provider.suspending): $freeMillis ms, " +
+                "longest gap between frames ${freeFrames.longestGapMillis} ms, janky frames ${freeFrames.jankyFrames}",
+        ).joinToString("\n")
+    }
+
+    private suspend fun measure(block: suspend () -> Unit): Pair<Long, FrameStats> {
+        var elapsed = 0L
+        val frames = sampler.sample {
+            val start = clock.nanoTime()
+            block()
+            elapsed = (clock.nanoTime() - start) / NANOS_PER_MILLI
+        }
+        return elapsed to frames
     }
 
     private companion object {

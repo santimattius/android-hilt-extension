@@ -14,6 +14,7 @@ enum class DemoId {
     TRACE_COROUTINE,
     BLOCKING_RESOLUTION,
     COMPLEX_GRAPH,
+    COMPLEX_GRAPH_MAIN_THREAD,
 }
 
 /**
@@ -103,6 +104,13 @@ object DemoCatalog {
             "Complex graph cost",
             "Simulated slow constructors: a deep chain and a wide fan-out add up, Lazy defers the cost, a singleton pays once.",
             "hilt.create ${DEMO_PACKAGE}.ChainA (nested ChainB to ChainE), WideFanOut, DeferredGraph, SlowSingleton",
+        ),
+        DemoSpec(
+            DemoId.COMPLEX_GRAPH_MAIN_THREAD,
+            "Complex graph on the main thread",
+            "The same simulated graph resolved with a blocking get() on the main thread and through " +
+                "Provider.suspending off it; frame gaps are measured. The animation stalls while main is blocked.",
+            "hilt.create ${DEMO_PACKAGE}.ChainA twice: on the main track, then on a worker track",
         ),
     )
 }
