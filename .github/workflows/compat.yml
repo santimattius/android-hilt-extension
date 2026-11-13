@@ -1,0 +1,47 @@
+# Consumer compatibility: builds a minimal throwaway app (compat/consumer) on the oldest validated
+# toolchain against artifacts published to a local Maven repository, then checks that the debug
+# dex carries the Hilt trace instrumentation and the release dex does not.
+# The consumer is not part of the main build; compat/run.sh runs the same steps locally.
+
+name: Compatibility
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master, 'feat/**']
+
+jobs:
+  consumer:
+    name: Consumer (AGP ${{ matrix.agp }}, Kotlin ${{ matrix.kotlin }}, Hilt ${{ matrix.hilt }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { agp: "9.1.1", kotlin: "2.2.21", hilt: "2.59.2", ksp: "2.3.13" }
+          - { agp: "9.1.1", kotlin: "2.2.21", hilt: "2.60.1", ksp: "2.3.13" }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # JDK 25 runs this repository's build (gradle/gradle-daemon-jvm.properties); JDK 21 runs the
+      # consumer build, which is the JDK the combination was validated with.
+      - name: Set up JDKs
+        uses: actions/setup-java@v6
+        with:
+          distribution: "temurin"
+          java-version: |
+            21
+            25
+          cache: "gradle"
+
+      - name: Grant execute permission for scripts
+        run: chmod +x gradlew compat/run.sh compat/check-dex.sh
+
+      # Publishes the three libraries and the plugin to a temporary local repository without
+      # signing (the opt-out exists only for this job), then builds the consumer.
+      - name: Build consumer against locally published artifacts
+        run: |
+          export COMPAT_JAVA_HOME="$JAVA_HOME_21_X64"
+          compat/run.sh "${{ matrix.agp }}" "${{ matrix.kotlin }}" "${{ matrix.hilt }}" "${{ matrix.ksp }}"
