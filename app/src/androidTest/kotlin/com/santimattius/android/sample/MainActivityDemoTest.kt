@@ -4,13 +4,16 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.santimattius.android.sample.demo.DemoId
 import com.santimattius.android.sample.ui.nodeInList
 import com.santimattius.android.sample.ui.resultTag
 import com.santimattius.android.sample.ui.runTag
+import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -59,8 +62,10 @@ class MainActivityDemoTest {
     @Test
     fun viewCardInflatesAnInjectedView() {
         run(DemoId.VIEW_INJECTION, "Inflated DemoView run #1", "shown below")
-        compose.onNodeWithText("DemoView #", substring = true)
-            .assertTextContains("injected with GreetingRepository (Perfetto)", substring = true)
+        // DemoView is a classic View hosted by AndroidView, so it is not in the Compose semantics tree.
+        compose.waitForIdle()
+        onView(withText(containsString("DemoView #")))
+            .check(matches(withText(containsString("injected with GreetingRepository (Perfetto)"))))
     }
 
     @Test

@@ -1,6 +1,10 @@
 # Verify it works
 
-All commands run from the repository root. `./gradlew` uses the wrapper (Gradle 9.6.0); the build runs on JDK 25 (`gradle/gradle-daemon-jvm.properties`).
+How to confirm that the instrumentation and the helpers work: run the tests, exercise the sample app, capture a trace, and check that release builds are untouched. Related: [Tracing](TRACING.md), [Limitations](LIMITATIONS.md).
+
+**Quick path:** `./gradlew check`, then `./gradlew :app:installDebug` and follow [section 4](#4-capture-a-trace).
+
+All commands run from the repository root. `./gradlew` uses the wrapper (Gradle 9.9.0); the build runs on JDK 25 (`gradle/gradle-daemon-jvm.properties`).
 
 ## 1. Unit tests (JVM, no device)
 
@@ -32,7 +36,8 @@ What the app suite covers:
 | `MainActivityDemoTest` | Drives the real activity and asserts every stable result clause on each card: activity recreation and its greeting, the injected view's own text, all dispatcher qualifiers, provider/lazy outcomes, and cancellation behavior. |
 | `DemoScreenTest` | The stateless screen: empty state, click callback, result, running state. |
 
-The Gradle exit status can be 0 even when the instrumentation run failed; read the XML in `app/build/outputs/androidTest-results/connected/` (`tests` above 0, `failures` and `errors` 0).
+> [!WARNING]
+> The Gradle exit status can be 0 even when the instrumentation run failed. Read the XML in `app/build/outputs/androidTest-results/connected/` (`tests` above 0, `failures` and `errors` 0).
 
 CI only compiles the instrumented tests (`:app:assembleDebugAndroidTest`, `:hilt-coroutines-runtime:assembleDebugAndroidTest`).
 
