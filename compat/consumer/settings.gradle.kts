@@ -10,7 +10,7 @@ pluginManagement {
     repositories {
         // Only this repository's own plugin comes from the local repository.
         mavenLocal {
-            content { includeGroupByRegex("com\\.santimattius.*") }
+            content { includeGroupByRegex("io\\.github\\.santimattius.*") }
         }
         google {
             content {
@@ -27,7 +27,7 @@ pluginManagement {
         id("org.jetbrains.kotlin.plugin.compose") version kotlin
         id("com.google.devtools.ksp") version ksp
         id("com.google.dagger.hilt.android") version hilt
-        id("com.santimattius.android.hilt.trace") version library
+        id("io.github.santimattius.android.hilt.trace") version library
     }
 }
 dependencyResolutionManagement {
@@ -36,7 +36,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         mavenLocal {
-            content { includeGroupByRegex("com\\.santimattius.*") }
+            content { includeGroupByRegex("io\\.github\\.santimattius.*") }
         }
     }
 }

@@ -87,11 +87,11 @@ class AccessorWiringTest {
             """
             plugins {
                 id("com.android.application")
-                id("com.santimattius.android.hilt.trace")
+                id("io.github.santimattius.android.hilt.trace")
             }
             android { namespace = "fixture.app"; compileSdk = 36; defaultConfig { minSdk = 24 } }
             // The plugin-added coordinates are published later; they are irrelevant to these builds.
-            configurations.all { exclude(group = "com.santimattius.android") }
+            configurations.all { exclude(group = "io.github.santimattius.android") }
             """.trimIndent(),
         )
         root.resolve("src/main/AndroidManifest.xml").apply { parentFile.mkdirs() }.writeText("<manifest />")

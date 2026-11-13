@@ -14,7 +14,7 @@ Maintainer guide for releasing the four library artifacts to Maven Central. Publ
 ## Prerequisites
 
 1. **Sonatype Central account**
-   - Sign up at [central.sonatype.com](https://central.sonatype.com/) and claim your group ID (this repository uses `com.santimattius.android`).
+   - Sign up at [central.sonatype.com](https://central.sonatype.com/) and claim a namespace. This repository uses the namespace `io.github.santimattius`, which is the one claimed and verified in Central; every published coordinate, including the Gradle plugin marker, must sit under it.
 
 2. **Central Portal token**
    - In Central Portal: **Profile → Generate User Token**.
@@ -31,7 +31,7 @@ Maintainer guide for releasing the four library artifacts to Maven Central. Publ
 
 ## Artifacts
 
-Each artifact uses its module name as artifact id, with the group `com.santimattius.android`:
+Each artifact uses its module name as artifact id, with the group `io.github.santimattius.android`:
 
 | Artifact id | Module | Build |
 |-------------|--------|-------|

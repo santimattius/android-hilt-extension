@@ -71,7 +71,7 @@ class LibraryInstrumentationTest {
             """
             plugins {
                 id("com.android.application")
-                id("com.santimattius.android.hilt.trace")
+                id("io.github.santimattius.android.hilt.trace")
             }
             android {
                 namespace = "fixture.app"; compileSdk = 36; defaultConfig { minSdk = 24 }
@@ -79,7 +79,7 @@ class LibraryInstrumentationTest {
             }
             dependencies { implementation(project(":lib")) }
             // The plugin-added coordinates are published later; they are irrelevant to these builds.
-            configurations.all { exclude(group = "com.santimattius.android") }
+            configurations.all { exclude(group = "io.github.santimattius.android") }
             tasks.register("printTransformTasks") {
                 doLast { project.tasks.names.filter { it.startsWith("transform") && it.endsWith("ClassesWithAsm") }.forEach { println("TASK " + it) } }
             }

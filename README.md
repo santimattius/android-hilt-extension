@@ -23,7 +23,7 @@ For an application module that already uses Hilt with KSP. The `libs.*` aliases 
        alias(libs.plugins.android.application)
        alias(libs.plugins.ksp)
        alias(libs.plugins.hilt)
-       id("com.santimattius.android.hilt.trace")
+       id("io.github.santimattius.android.hilt.trace")
    }
 
    ksp {
@@ -61,11 +61,11 @@ What is not covered (uninstrumented bindings, no automatic scope cancellation, u
 
 ## Modules
 
-All artifacts use the group `com.santimattius.android` and the version `libraryVersion` from `gradle.properties`.
+All artifacts use the group `io.github.santimattius.android` and the version `libraryVersion` from `gradle.properties`.
 
 | Artifact | Kind | Purpose |
 |----------|------|---------|
-| `hilt-trace-gradle-plugin` | Gradle plugin, id `com.santimattius.android.hilt.trace` | Instruments the Hilt-generated classes of the selected variants. |
+| `hilt-trace-gradle-plugin` | Gradle plugin, id `io.github.santimattius.android.hilt.trace` | Instruments the Hilt-generated classes of the selected variants. |
 | `hilt-trace-compiler` | KSP processor | Writes the binding catalogue `META-INF/hilt-trace/<module>.json`. |
 | `hilt-trace-runtime` | Android library | `HiltTrace` facade over `androidx.tracing`. Called by instrumented code. |
 | `hilt-coroutines-runtime` | Android library | Dispatcher and scope qualifiers, `SuspendProvider`, `SuspendLazy`, `Lazy.await`, `traceCoroutine`. |

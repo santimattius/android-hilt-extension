@@ -8,8 +8,8 @@ class PluginCoordinatesTest {
 
     @Test
     fun `compiler and runtime use the library group and a resolved version`() {
-        assertTrue(PluginCoordinates.compiler, Regex("com\\.santimattius\\.android:hilt-trace-compiler:\\d+\\.\\d+\\.\\d+\\S*").matches(PluginCoordinates.compiler))
-        assertTrue(PluginCoordinates.runtime, Regex("com\\.santimattius\\.android:hilt-trace-runtime:\\d+\\.\\d+\\.\\d+\\S*").matches(PluginCoordinates.runtime))
+        assertTrue(PluginCoordinates.compiler, Regex("io\\.github\\.santimattius\\.android:hilt-trace-compiler:\\d+\\.\\d+\\.\\d+\\S*").matches(PluginCoordinates.compiler))
+        assertTrue(PluginCoordinates.runtime, Regex("io\\.github\\.santimattius\\.android:hilt-trace-runtime:\\d+\\.\\d+\\.\\d+\\S*").matches(PluginCoordinates.runtime))
     }
 
     @Test

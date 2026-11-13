@@ -5,7 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") apply false
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-    id("com.santimattius.android.hilt.trace")
+    id("io.github.santimattius.android.hilt.trace")
 }
 
 val hiltVersion = providers.gradleProperty("compatHilt").get()
@@ -34,7 +34,7 @@ ksp { arg("hiltTrace.module", ":app") }
 dependencies {
     implementation("androidx.activity:activity:1.10.1")
     implementation("androidx.tracing:tracing:2.0.5")
-    implementation("com.santimattius.android:hilt-coroutines-runtime:$libraryVersion")
+    implementation("io.github.santimattius.android:hilt-coroutines-runtime:$libraryVersion")
     implementation("com.google.dagger:hilt-android:$hiltVersion")
     ksp("com.google.dagger:hilt-compiler:$hiltVersion")
 }
