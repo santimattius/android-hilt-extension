@@ -78,8 +78,8 @@ In **Settings → Secrets and variables → Actions**, add:
 |----------------------------|-------------|
 | `MAVEN_CENTRAL_USERNAME`   | Central Portal token username |
 | `MAVEN_CENTRAL_PASSWORD`   | Central Portal token password |
-| `SIGNING_KEY`              | Full ASCII-armored GPG private key (multi-line) |
-| `SIGNING_KEY_PASSWORD`     | (Optional) GPG key passphrase |
+| `GPG_KEY_CONTENTS`         | Full ASCII-armored GPG private key (multi-line) |
+| `SIGNING_PASSWORD`         | (Optional) GPG key passphrase |
 | `SIGNING_KEY_ID`           | (Optional) GPG key ID (e.g. 8-character hex) |
 
 ### 2. Release flow
