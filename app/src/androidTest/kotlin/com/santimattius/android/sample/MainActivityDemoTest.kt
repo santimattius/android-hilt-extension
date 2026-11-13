@@ -121,6 +121,16 @@ class MainActivityDemoTest {
         "the running get() still finished: true",
     )
 
+    @Test
+    fun complexGraphCardReportsATimingPerScenario() = run(
+        DemoId.COMPLEX_GRAPH,
+        "SIMULATED",
+        "Deep chain (5 x 30 ms, eager):",
+        "Wide fan-out (3 x 40 ms, eager):",
+        "Same graph behind Lazy: resolve",
+        "Slow @Singleton",
+    )
+
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L
     }

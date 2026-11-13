@@ -275,6 +275,39 @@ class TraceCaptureTest {
     }
 
     @Test
+    fun complexGraphShowsTheChainNestedTheFanOutAsSiblingsAndTheDeferredCostOutsideResolution() {
+        val tracks = captureLaunch(
+            { true },
+            { it.runDemo(DemoId.COMPLEX_GRAPH) },
+            { slices -> slices.count { it.type == BEGIN && it.name == SLOW_SINGLETON } >= 1 },
+        )
+        val nodes = tracks.allNodes().filter { it.category == CREATE }
+
+        // Deep chain: each level is created inside the previous one. The deferred graph builds the same
+        // chain on its first use, so there are two chains and the deferred one is not under its graph.
+        val chains = nodes.filter { it.name == "$DEMO_PACKAGE.ChainA" }
+        assertEquals(2, chains.size)
+        chains.forEach { root ->
+            var level = root
+            listOf("B", "C", "D", "E").forEach { next ->
+                level = level.children.single { it.name == "$DEMO_PACKAGE.Chain$next" }
+            }
+            assertTrue(level.children.isEmpty())
+        }
+        // Wide fan-out: the siblings are created one after another inside the consumer, not nested.
+        val fanOut = nodes.single { it.name == "$DEMO_PACKAGE.WideFanOut" }
+        assertEquals(
+            listOf("SlowOne", "SlowTwo", "SlowThree").map { "$DEMO_PACKAGE.$it" },
+            fanOut.children.map { it.name },
+        )
+        assertTrue(fanOut.children.all { it.children.isEmpty() })
+        // Deferred: resolving the graph creates nothing under it; the cost shows up elsewhere on first use.
+        assertTrue(nodes.single { it.name == "$DEMO_PACKAGE.DeferredGraph" }.children.isEmpty())
+        // The slow singleton is created once however often it is requested.
+        assertEquals(1, nodes.count { it.name == SLOW_SINGLETON })
+    }
+
+    @Test
     fun traceCoroutineShowsItsSectionWhenTheCategoryIsEnabled() {
         val tracks = captureLaunch(
             { true },
@@ -301,6 +334,7 @@ class TraceCaptureTest {
         const val SCRATCH_VIEW_MODEL = "com.santimattius.android.sample.android.ScratchViewModel"
         const val SINGLETON_COUNTER = "$DEMO_PACKAGE.SingletonCounter"
         const val FRESH_WIDGET = "$DEMO_PACKAGE.FreshWidget"
+        const val SLOW_SINGLETON = "$DEMO_PACKAGE.SlowSingleton"
         const val EXPENSIVE_SERVICE = "$DEMO_PACKAGE.ExpensiveService"
         const val TAG = "TraceCaptureTest"
         const val BEGIN = 1

@@ -1,5 +1,7 @@
 package com.santimattius.android.sample.di
 
+import com.santimattius.android.sample.demo.MonotonicClock
+import com.santimattius.android.sample.demo.SimulatedWork
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,4 +24,11 @@ object SampleModule {
     @Singleton
     @Named(AUDIENCE)
     fun provideAudience(): String = "perfetto"
+
+    /** Real implementations of the demo's test seams; unit tests replace them with a fake clock. */
+    @Provides
+    fun provideSimulatedWork(): SimulatedWork = SimulatedWork { Thread.sleep(it) }
+
+    @Provides
+    fun provideMonotonicClock(): MonotonicClock = MonotonicClock { System.nanoTime() }
 }
