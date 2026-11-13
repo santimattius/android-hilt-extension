@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.santimattius.android.hilt.trace"
+    namespace = "io.github.santimattius.android.hilt.trace"
 
     testOptions {
         // androidx.tracing reads android.os.Process (pid/tid) while initializing; the unit-test

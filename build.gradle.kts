@@ -11,7 +11,7 @@ plugins {
 
 // Each included build keeps its own libraryVersion default (it does not read this file),
 // so the defaults are compared against the root value.
-tasks.named<com.santimattius.android.hilt.buildlogic.VerifyVersionAlignment>("verifyVersionAlignment") {
+tasks.named<io.github.santimattius.android.hilt.buildlogic.VerifyVersionAlignment>("verifyVersionAlignment") {
     propertyFiles.from(
         file("gradle.properties"),
         file("build-logic/gradle.properties"),

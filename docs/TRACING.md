@@ -56,7 +56,7 @@ There is no on/off switch in the library API: tracing is on when a driver enable
 Run these from the repository root with an emulator or device attached. They use the automatic `tracing-wire` driver; the broadcast actions come from the `tracing-wire` 2.0.5 manifest.
 
 ```bash
-PKG=com.santimattius.android.sample
+PKG=io.github.santimattius.android.sample
 RECEIVER=$PKG/androidx.tracing.profiler.ConnectedProfilerTracingReceiver
 ./gradlew :app:installDebug
 adb shell am broadcast -a androidx.tracing.profiler.action.START -n $RECEIVER

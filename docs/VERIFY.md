@@ -45,7 +45,7 @@ CI only compiles the instrumented tests (`:app:assembleDebugAndroidTest`, `:hilt
 
 ```bash
 ./gradlew :app:installDebug
-adb shell am start -n com.santimattius.android.sample/.MainActivity
+adb shell am start -n io.github.santimattius.android.sample/.MainActivity
 ```
 
 The screen is a list of cards. Each has a title, the promise, the trace section a recording shows for it, a **Run** button and a result text. Logic lives in small injectable classes under `app/src/main/kotlin/.../demo`; `DemoViewModel` holds the state and `DemoScreen` only renders it.
@@ -53,7 +53,7 @@ The screen is a list of cards. Each has a title, the promise, the trace section 
 | Card | Run does | Result to expect | Trace section |
 |------|----------|------------------|---------------|
 | Activity injection | Recreates `MainActivity` | New instance id, `injected with GreetingRepository (Perfetto)` | `hilt.inject` `MainActivity.members` |
-| ViewModel creation | Creates a new `ScratchViewModel` | `ScratchViewModel #<id> created with GreetingRepository (Perfetto)` | `hilt.create` `com.santimattius.android.sample.android.ScratchViewModel` |
+| ViewModel creation | Creates a new `ScratchViewModel` | `ScratchViewModel #<id> created with GreetingRepository (Perfetto)` | `hilt.create` `io.github.santimattius.android.sample.android.ScratchViewModel` |
 | View injection | Inflates a new `DemoView` below the card | `Inflated DemoView run #n`; the view shows its own injected text | `hilt.inject` `DemoView.members` |
 | Service injection | Starts `DemoService`, which reports back and stops itself | `DemoService #<id> injected with GreetingRepository (Perfetto)` | `hilt.inject` `DemoService.members` |
 | Singleton binding | Requests a `@Singleton` twice | `same instance: true` | `hilt.create` `...demo.SingletonCounter`, first run only |
@@ -82,7 +82,7 @@ These ran against the sample after `./gradlew :app:assembleDebug :app:assembleRe
 
 ```bash
 CLASSES=app/build/intermediates/classes
-PKG=dirs/com/santimattius/android/sample
+PKG=dirs/io/github/santimattius/android/sample
 SP='DaggerSampleApplication_HiltComponents_SingletonC$SingletonCImpl$SwitchingProvider.class'
 
 # Debug: wrapped cases call the facade (one begin call per wrapped case)

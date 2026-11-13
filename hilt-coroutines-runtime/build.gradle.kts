@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.santimattius.android.hilt.coroutines"
+    namespace = "io.github.santimattius.android.hilt.coroutines"
 
     defaultConfig {
         // Replaces the application with HiltTestApplication for the instrumented Hilt tests.
-        testInstrumentationRunner = "com.santimattius.android.hilt.coroutines.HiltTestRunner"
+        testInstrumentationRunner = "io.github.santimattius.android.hilt.coroutines.HiltTestRunner"
     }
 
     testOptions {

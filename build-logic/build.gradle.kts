@@ -2,7 +2,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "com.santimattius.android.hilt.buildlogic"
+group = "io.github.santimattius.android.hilt.buildlogic"
 
 val testPlugins = configurations.create("testPlugins") {
     isCanBeConsumed = false
@@ -34,19 +34,19 @@ gradlePlugin {
     plugins {
         register("androidLibrary") {
             id = "hiltext.android-library"
-            implementationClass = "com.santimattius.android.hilt.buildlogic.AndroidLibraryConventionPlugin"
+            implementationClass = "io.github.santimattius.android.hilt.buildlogic.AndroidLibraryConventionPlugin"
         }
         register("jvmLibrary") {
             id = "hiltext.jvm-library"
-            implementationClass = "com.santimattius.android.hilt.buildlogic.JvmLibraryConventionPlugin"
+            implementationClass = "io.github.santimattius.android.hilt.buildlogic.JvmLibraryConventionPlugin"
         }
         register("versionAlignment") {
             id = "hiltext.version-alignment"
-            implementationClass = "com.santimattius.android.hilt.buildlogic.VersionAlignmentConventionPlugin"
+            implementationClass = "io.github.santimattius.android.hilt.buildlogic.VersionAlignmentConventionPlugin"
         }
         register("publishing") {
             id = "hiltext.publishing"
-            implementationClass = "com.santimattius.android.hilt.buildlogic.PublishingConventionPlugin"
+            implementationClass = "io.github.santimattius.android.hilt.buildlogic.PublishingConventionPlugin"
         }
     }
 }
