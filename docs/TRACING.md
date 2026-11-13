@@ -1,6 +1,8 @@
 # Tracing
 
-Hilt Trace adds Perfetto sections around Hilt object creation and injection in the instrumented variants (`debug` and `benchmark` by default). Setup is in [Setup](SETUP.md); the step-by-step check is in [Verify it works](VERIFY.md).
+Hilt Trace adds Perfetto sections around Hilt object creation and injection in the instrumented variants (`debug` and `benchmark` by default). This page explains what gets a section, how categories and drivers decide what is recorded, and how to capture a trace. Prerequisite: [Setup](SETUP.md). Related: [Verify it works](VERIFY.md), [Limitations](LIMITATIONS.md).
+
+**Quick path:** set up the plugin, install a debug build, send the `START` broadcast, relaunch, use the app, flush, pull the file and open it in Perfetto. Commands: [Capture a trace](#capture-a-trace).
 
 ## How it works
 
@@ -36,7 +38,7 @@ Each category is gated by `Tracer.isCategoryEnabled`, so `hilt.create` and `hilt
 
 `tracing-wire` initialises itself through `androidx.startup`. The sample adds it with `debugImplementation(libs.androidx.tracing.wire)`. In the sample, with the capture steps below, the automatic driver recorded `hilt.create`, `hilt.inject` and the `sample.coroutine` category used by `traceCoroutine`.
 
-To choose categories yourself, provide a driver as the [Tracing 2.0 guide](https://developer.android.com/topic/performance/tracing/in-process-tracing) describes. This snippet follows that page and has not been run in the sample:
+To choose categories yourself, provide a driver as the [Tracing 2.0 guide](https://developer.android.com/topic/performance/tracing/in-process-tracing) describes. This snippet follows that page and has **not been run** in the sample (unverified):
 
 ```kotlin
 class App : Application(), AbstractTraceDriver.Factory {
@@ -67,7 +69,12 @@ adb pull /storage/emulated/0/Android/media/$PKG/perfetto_traces/<file>.perfetto-
 adb shell am broadcast -a androidx.tracing.profiler.action.STOP -n $RECEIVER
 ```
 
-Open the file in the [Perfetto UI](https://ui.perfetto.dev/) and search the slice names. These steps were run on an Android 15 emulator; check them on your device and API level.
+Open the file in the [Perfetto UI](https://ui.perfetto.dev/) and search the slice names.
+
+> [!NOTE]
+> These steps were run on an Android 15 emulator only. Check them on your device and API level.
+
+Observed behavior:
 
 - Without `START` the automatic driver recorded nothing (the file stayed at a 61-byte header).
 - Files are empty until `FLUSH_TRACES_GET_PATH`. Several files may exist; the newest one holds the run. An older empty file is normal.

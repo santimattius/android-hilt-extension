@@ -1,5 +1,7 @@
 # Coroutine helpers
 
+Dispatcher and scope qualifiers, suspending adapters for `Provider` and `Lazy`, a suspending lazy, and a trace section that follows a coroutine. Prerequisite: [Setup](SETUP.md#coroutine-helpers). Related: [Tracing](TRACING.md), [Limitations](LIMITATIONS.md).
+
 Artifact: `hilt-coroutines-runtime`. Packages: `com.santimattius.android.hilt.coroutines` (`traceCoroutine`), `.di` (qualifiers, module, closer) and `.suspend` (adapters). The module runs `explicitApi()`; everything below is public API.
 
 ## Dispatchers and scope
@@ -22,7 +24,10 @@ class Repo @Inject constructor(
 
 Do not declare your own qualifiers for these types: a second binding of the same type is a duplicate. Tests replace the module with `@TestInstallIn(replaces = [CoroutinesModule::class])` and the same qualifiers.
 
-**The application scope is never cancelled automatically.** `SingletonComponent` has no destroy callback. `ApplicationScopeCloser` (`@Singleton`, `AutoCloseable`) cancels it when its owner calls `close()`, for example a test rule. This is covered by `CoroutinesModuleUnitTest`.
+> [!WARNING]
+> The application scope is never cancelled automatically.
+
+`SingletonComponent` has no destroy callback. `ApplicationScopeCloser` (`@Singleton`, `AutoCloseable`) cancels it when its owner calls `close()`, for example a test rule. This is covered by `CoroutinesModuleUnitTest`.
 
 ## SuspendProvider
 
@@ -48,7 +53,8 @@ Resolves a `dagger.Lazy` on the dispatcher (default `Dispatchers.Default`). Cach
 
 ## Blocking resolution contract
 
-Both adapters share one internal helper (`resolveBlockingOn`, a `withContext`). Consequences (the cancel-before-dispatch and failure cases are covered by `SuspendProviderTest` and `LazyAwaitTest`; the uninterruptible running call is demonstrated by the sample's `BlockingResolutionDemoTest`):
+Both adapters share one internal helper (`resolveBlockingOn`, a `withContext`). Evidence: `SuspendProviderTest` and `LazyAwaitTest` cover the cancel-before-dispatch and failure cases; the sample's `BlockingResolutionDemoTest` demonstrates the uninterruptible running call.
+
 
 - A caller that is already cancelled fails fast with `CancellationException`.
 - If cancellation arrives before the dispatcher runs the call, `get()` is never invoked.
