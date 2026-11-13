@@ -13,6 +13,7 @@ enum class DemoId {
     LAZY_AWAIT,
     TRACE_COROUTINE,
     BLOCKING_RESOLUTION,
+    COMPLEX_GRAPH,
 }
 
 /**
@@ -96,6 +97,12 @@ object DemoCatalog {
             "Blocking resolution",
             "Cancelling a caller does not interrupt a get() that already started; it is rethrown afterwards.",
             null,
+        ),
+        DemoSpec(
+            DemoId.COMPLEX_GRAPH,
+            "Complex graph cost",
+            "Simulated slow constructors: a deep chain and a wide fan-out add up, Lazy defers the cost, a singleton pays once.",
+            "hilt.create ${DEMO_PACKAGE}.ChainA (nested ChainB to ChainE), WideFanOut, DeferredGraph, SlowSingleton",
         ),
     )
 }

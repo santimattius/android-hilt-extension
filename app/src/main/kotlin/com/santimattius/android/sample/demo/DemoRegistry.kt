@@ -14,6 +14,7 @@ class DemoRegistry internal constructor(private val demos: Map<DemoId, SuspendDe
         lazyAwait: LazyAwaitDemo,
         traceCoroutine: TraceCoroutineDemo,
         blocking: BlockingResolutionDemo,
+        complexGraph: ComplexGraphDemo,
     ) : this(
         mapOf(
             DemoId.SINGLETON_BINDING to singleton,
@@ -23,6 +24,7 @@ class DemoRegistry internal constructor(private val demos: Map<DemoId, SuspendDe
             DemoId.LAZY_AWAIT to lazyAwait,
             DemoId.TRACE_COROUTINE to traceCoroutine,
             DemoId.BLOCKING_RESOLUTION to blocking,
+            DemoId.COMPLEX_GRAPH to complexGraph,
         ),
     )
 

@@ -58,6 +58,7 @@ The screen is a list of cards. Each has a title, the promise, the trace section 
 | Lazy.await | Resolves a slow `dagger.Lazy` on the default dispatcher | Construction thread is not the main thread; second `await()` same instance | `hilt.create` `...demo.ExpensiveService` |
 | traceCoroutine | A block that suspends and switches to the I/O dispatcher | `traceCoroutine returned: refreshed on <io thread>`; `recorded: true/false` shows whether the category is enabled | `sample.coroutine` `refresh` (several segments) |
 | Blocking resolution | Cancels a caller while a blocking `get()` runs | `caller cancelled ...: true`, `the running get() still finished: true` | none |
+| Complex graph cost | Resolves a simulated-slow graph four ways and times each with a monotonic clock: 5-level chain, 3-sibling fan-out, the same graph behind `Lazy`, a slow `@Singleton` | Elapsed ms per scenario: chain and fan-out equal the sum of their delays, `Lazy` resolves in about 0 ms and moves the cost to first use, singleton get #2 is about 0 ms (delays are simulated; read the shape) | `hilt.create` `...demo.ChainA` with `ChainB` to `ChainE` nested inside; `WideFanOut` with `SlowOne`, `SlowTwo`, `SlowThree` as siblings; `DeferredGraph` with no children; `SlowSingleton` once |
 
 There is no tracing on/off toggle: the library has none (see [Tracing](TRACING.md)). Compare a capture taken without `START` (no sections) to one taken with it.
 
