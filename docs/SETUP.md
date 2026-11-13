@@ -1,5 +1,10 @@
 # Setup
 
+How to add Hilt Trace and the coroutine helpers to an Android project, which versions are supported, and how to consume the artifacts while they are unpublished. Related: [Tracing](TRACING.md), [Coroutines](COROUTINES.md), [Limitations](LIMITATIONS.md).
+
+> [!NOTE]
+> `1.0.0-alpha01` is not published to Maven Central. Snippets that use `com.santimattius.android:...:1.0.0-alpha01` coordinates show the intended form; they resolve only after publication. See [Consuming the artifacts](#consuming-the-artifacts).
+
 ## Requirements
 
 | Item | Version used by this repository | Source |
@@ -10,11 +15,11 @@
 | Hilt / Dagger | 2.60.1 | `gradle/libs.versions.toml` |
 | androidx.tracing | 2.0.5 | `gradle/libs.versions.toml` |
 | kotlinx-coroutines | 1.11.0 | `gradle/libs.versions.toml` |
-| Gradle | 9.6.0 | `gradle/wrapper/gradle-wrapper.properties` |
+| Gradle | 9.9.0 | `gradle/wrapper/gradle-wrapper.properties` |
 | JDK | 25 runs the build; library bytecode targets 17 | `gradle/gradle-daemon-jvm.properties`, `build-logic` |
 | `minSdk` / library `compileSdk` | 24 / 35 (the sample app compiles against 37) | `gradle.properties` |
 
-Compatibility beyond this set is described in [Supported toolchains](#supported-toolchains); anything not listed there has not been tested. Two couplings matter:
+Compatibility beyond this set is in [Supported toolchains](#supported-toolchains); anything not listed there has not been tested. Two couplings matter:
 
 - **Hilt version.** The plugin rewrites the shape of classes that Hilt generates (`SwitchingProvider`, `Dagger*_HiltComponents_*CImpl`). The rewrite was verified against Hilt 2.60.1 output only. On another Hilt version an unrecognised shape is left unchanged with a warning, so you lose sections rather than the build.
 - **androidx.tracing 2.x.** `hilt-trace-runtime` exposes `androidx.tracing:tracing` 2.0.5 as an `api` dependency. Tracing 1.x and 2.x share one coordinate, so Gradle upgrades a consumer that resolves 1.x.
@@ -71,7 +76,8 @@ hiltTrace {
 }
 ```
 
-If you use the Compose compiler plugin with AGP 9.5.0 and Kotlin 2.4.21, the sample needed a workaround for `:generateDebugComposePreviewRunfiles`; see `app/build.gradle.kts` (`unitTests.isIncludeAndroidResources` and `HasUnitTestBuilder.enableUnitTest`). The failure is independent of Hilt Trace.
+> [!NOTE]
+> With the Compose compiler plugin on AGP 9.5.0 and Kotlin 2.4.21, the sample needed a workaround for `:generateDebugComposePreviewRunfiles`: see `unitTests.isIncludeAndroidResources` and `HasUnitTestBuilder.enableUnitTest` in `app/build.gradle.kts`. The failure is independent of Hilt Trace.
 
 ## Library module with Hilt code
 
@@ -91,7 +97,7 @@ ksp {
 dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    ksp("com.santimattius.android:hilt-trace-compiler:1.0.0-alpha01")
+    ksp("com.santimattius.android:hilt-trace-compiler:1.0.0-alpha01")   // unpublished, see Consuming the artifacts
 }
 ```
 
@@ -103,6 +109,7 @@ Evidence: `LibraryInstrumentationTest` builds a throwaway app with a library sub
 
 ```kotlin
 dependencies {
+    // Unpublished: resolves only after publication. Inside this repository use project(":hilt-coroutines-runtime").
     implementation("com.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha01")
 }
 ```
@@ -115,6 +122,6 @@ The module brings `kotlinx-coroutines-core` and `hilt-android` as `api` dependen
 |-----------|-----|
 | Before publication (this repository) | `settings.gradle.kts` uses `pluginManagement { includeBuild("hilt-trace-gradle-plugin") }`. `app/build.gradle.kts` substitutes `com.santimattius.android:hilt-trace-runtime` and `:hilt-trace-compiler` with the local projects, because the plugin adds them by coordinate. `:hilt-coroutines-runtime` is a plain `project(...)` dependency. |
 | Another project, before publication | Not documented by this repository. A composite build of this repository with the same substitutions is the likely route; it has not been tried. |
-| After publication | Coordinates are `com.santimattius.android:<artifact>:<version>` (see the README table). Publishing is described in [Publishing](PUBLISHING.md). Whether the plugin marker artifact is published for plugin id resolution has not been verified. |
+| After publication | Coordinates are `com.santimattius.android:<artifact>:<version>` (artifact ids in the [README](../README.md#modules)). Publishing is described in [Publishing](PUBLISHING.md). Whether the plugin marker artifact is published for plugin id resolution has not been verified. |
 
-`libraryVersion` is `1.0.0-alpha01` in `gradle.properties`.
+The current version, `libraryVersion` in `gradle.properties`, is `1.0.0-alpha01`.

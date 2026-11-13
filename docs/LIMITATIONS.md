@@ -1,6 +1,6 @@
 # Limitations and known constraints
 
-Each item names its evidence. Items marked **unverified** are expected from the design but not backed by a test or a run in this repository.
+What Hilt Trace and the coroutine helpers do not cover, and which claims lack proof. Each item names its evidence. Items marked **unverified** are expected from the design but not backed by a test or a run in this repository. Related: [Setup](SETUP.md), [Tracing](TRACING.md), [Coroutines](COROUTINES.md).
 
 ## Not instrumented
 
@@ -28,7 +28,7 @@ Confirmed against Hilt 2.60.1 output.
 | Fragments are covered by ASM tests only; the sample has no Fragment. | `InjectRuleTest`. |
 | KSP only; there is no kapt path. | Project constraint, `CatalogueProcessor`. |
 | `minSdk` 24 for the library modules and the sample. Lower values are untested. | `gradle.properties`. |
-| Tested versions: AGP 9.5.0, Kotlin 2.4.21, KSP 2.3.13, Hilt 2.60.1. Others are unverified. | `gradle/libs.versions.toml`. |
+| Validated versions are listed in [Setup: Supported toolchains](SETUP.md#supported-toolchains). Others are unverified. | `gradle/libs.versions.toml`, `.github/workflows/compat.yml`. |
 
 ## Runtime
 
@@ -51,9 +51,9 @@ Confirmed against Hilt 2.60.1 output.
 
 ## Publishing state
 
-- The four artifacts are not on Maven Central. Whether the Gradle plugin marker artifact for the id `com.santimattius.android.hilt.trace` is published has **not been verified**.
+- The four artifacts (`1.0.0-alpha01`) are not on Maven Central. Whether the Gradle plugin marker artifact for the id `com.santimattius.android.hilt.trace` is published has **not been verified**.
 - Instrumented tests run on a device or emulator only; CI compiles and packages them but never runs them.
 
 ## Compose preview workaround
 
-With AGP 9.5.0 and the Compose compiler plugin of Kotlin 2.4.21, the sample needs two settings for `:generateDebugComposePreviewRunfiles` (see `app/build.gradle.kts`). The failure is independent of Hilt Trace.
+With AGP 9.5.0 and the Compose compiler plugin of Kotlin 2.4.21, the sample needs two settings for `:generateDebugComposePreviewRunfiles` (see `app/build.gradle.kts`). The failure is independent of Hilt Trace. Details: [Setup](SETUP.md#application-module).
