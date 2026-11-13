@@ -7,9 +7,9 @@
 # Required GitHub Secrets:
 #   MAVEN_CENTRAL_USERNAME  - Sonatype Central token username (from Central Portal)
 #   MAVEN_CENTRAL_PASSWORD  - Sonatype Central token password
-#   SIGNING_KEY             - ASCII-armored GPG private key (gpg --export-secret-keys --armor <key-id>)
-#   SIGNING_KEY_PASSWORD    - (optional) Passphrase for the GPG key
-#   SIGNING_KEY_ID          - (optional) GPG key ID (e.g. 8 chars), if not set the key is read from SIGNING_KEY
+#   GPG_KEY_CONTENTS        - ASCII-armored GPG private key (gpg --export-secret-keys --armor <key-id>)
+#   SIGNING_PASSWORD        - (optional) Passphrase for the GPG key
+#   SIGNING_KEY_ID          - (optional) GPG key ID (e.g. 8 chars), if not set the key is read from GPG_KEY_CONTENTS
 
 name: Publish to Maven Central
 
@@ -56,8 +56,8 @@ jobs:
           ORG_GRADLE_PROJECT_libraryVersion: ${{ steps.version.outputs.version }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
         run: ./gradlew publishToMavenCentral --configuration-cache
 
@@ -69,7 +69,7 @@ jobs:
           ORG_GRADLE_PROJECT_libraryVersion: ${{ steps.version.outputs.version }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
         run: ./gradlew -p hilt-trace-gradle-plugin publishToMavenCentral --configuration-cache
