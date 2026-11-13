@@ -6,10 +6,14 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
-/** Shared Android library setup: SDK levels come from the root `gradle.properties`. */
+/**
+ * Shared Android library setup: SDK levels come from the root `gradle.properties`; the Kotlin
+ * language level follows [KotlinCompatibility].
+ */
 class AndroidLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         target.pluginManager.apply("com.android.library")
+        target.configureKotlinCompatibility()
         target.extensions.configure<LibraryExtension> {
             compileSdk = target.intProperty("androidTargetSdkVersion")
             defaultConfig {

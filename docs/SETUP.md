@@ -14,10 +14,26 @@
 | JDK | 25 runs the build; library bytecode targets 17 | `gradle/gradle-daemon-jvm.properties`, `build-logic` |
 | `minSdk` / `compileSdk` | 24 / 37 | `gradle.properties` |
 
-Compatibility beyond this set has not been tested. Two couplings matter:
+Compatibility beyond this set is described in [Supported toolchains](#supported-toolchains); anything not listed there has not been tested. Two couplings matter:
 
 - **Hilt version.** The plugin rewrites the shape of classes that Hilt generates (`SwitchingProvider`, `Dagger*_HiltComponents_*CImpl`). The rewrite was verified against Hilt 2.60.1 output only. On another Hilt version an unrecognised shape is left unchanged with a warning, so you lose sections rather than the build.
 - **androidx.tracing 2.x.** `hilt-trace-runtime` exposes `androidx.tracing:tracing` 2.0.5 as an `api` dependency. Tracing 1.x and 2.x share one coordinate, so Gradle upgrades a consumer that resolves 1.x.
+
+## Supported toolchains
+
+The artifacts are compiled with Kotlin language and API level 2.2 and their POMs depend on `kotlin-stdlib` 2.2.21, so a consumer does not need the Kotlin version this repository builds with. The `compat` CI job builds a minimal app against locally published artifacts and checks the debug dex for instrumentation and the release dex for none.
+
+| Consumer toolchain | Status |
+|--------------------|--------|
+| AGP 9.1.1, Kotlin 2.2.21, KSP 2.3.13, Hilt 2.59.2 | Validated: debug and release build, debug instrumented, release not. |
+| AGP 9.1.1, Kotlin 2.2.21, KSP 2.3.13, Hilt 2.60.1 | Validated, same result. |
+| AGP 9.5.0, Kotlin 2.4.21, Hilt 2.60.1 | This repository's own build (the sample app). |
+| Anything below AGP 9.1.1 or Kotlin 2.2.21, other KSP or Hilt versions | Unverified. |
+
+- **Floor.** AGP 9.1.1 and Kotlin 2.2.21 are the lowest versions that were tried, not a proven minimum.
+- **Hilt and Kotlin metadata.** Hilt 2.59.2 reads Kotlin metadata up to 2.3.0, so it works with consumers up to Kotlin 2.3. A Kotlin 2.4 consumer needs Hilt 2.60.1. This comes from Hilt, not from these artifacts.
+- **KSP.** KSP 2.3.x is decoupled from the Kotlin version, so the same KSP release was used with Kotlin 2.2.21 and 2.4.21.
+- **compileSdk.** `hilt-trace-runtime` requires consumers to compile against Android 37 or later.
 
 ## Application module
 

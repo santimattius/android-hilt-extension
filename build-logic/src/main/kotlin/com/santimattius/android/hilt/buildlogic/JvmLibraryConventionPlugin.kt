@@ -11,7 +11,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 /**
  * Shared Kotlin JVM library setup. The Kotlin plugin is applied by id without a version because
  * AGP 9 already places the Kotlin Gradle plugin on the build classpath. Bytecode targets 17 even
- * when the daemon runs a newer JDK.
+ * when the daemon runs a newer JDK. Language and API levels and the stdlib version follow
+ * [KotlinCompatibility].
  */
 class JvmLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -19,6 +20,7 @@ class JvmLibraryConventionPlugin : Plugin<Project> {
         target.extensions.configure<KotlinJvmProjectExtension> {
             compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
         }
+        target.configureKotlinCompatibility()
         target.extensions.configure<JavaPluginExtension> {
             sourceCompatibility = JavaVersion.VERSION_17
             targetCompatibility = JavaVersion.VERSION_17

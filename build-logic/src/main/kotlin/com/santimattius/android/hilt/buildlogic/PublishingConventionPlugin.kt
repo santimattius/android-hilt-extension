@@ -8,14 +8,18 @@ import org.gradle.kotlin.dsl.configure
 /**
  * Maven Central publishing shared by every published module. Coordinates use `libraryGroupId`,
  * the module name as artifact id, and `libraryVersion`. POM fields can be overridden through the
- * `POM_*` properties.
+ * `POM_*` properties. Publications are signed unless `-Philtext.skipSigning=true` is passed.
  */
 class PublishingConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         target.pluginManager.apply("com.vanniktech.maven.publish")
         target.extensions.configure<MavenPublishBaseExtension> {
             publishToMavenCentral(automaticRelease = true)
-            signAllPublications()
+            // Signing is on unless a build opts out explicitly. The only opt-out is the compat CI
+            // job, which publishes to a throwaway local repository; releases never set it.
+            if (target.findProperty("hiltext.skipSigning") != "true") {
+                signAllPublications()
+            }
 
             coordinates(
                 target.property("libraryGroupId") as String,
