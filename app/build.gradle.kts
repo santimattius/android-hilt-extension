@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    id("com.santimattius.android.hilt.trace")
+    id("io.github.santimattius.android.hilt.trace")
 }
 
 val androidMinSdkVersion: String by project

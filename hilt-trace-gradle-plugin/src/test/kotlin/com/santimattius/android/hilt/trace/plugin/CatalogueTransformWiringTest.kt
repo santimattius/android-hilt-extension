@@ -29,7 +29,7 @@ class CatalogueTransformWiringTest {
             doLast { view.files.forEach { root -> root.walkTopDown().filter { it.isFile }.forEach { println("CATALOGUE " + it.name) } } }
         }
         // The plugin-added coordinates are published later; they are irrelevant to these resolutions.
-        configurations.all { exclude(group = "com.santimattius.android") }
+        configurations.all { exclude(group = "io.github.santimattius.android") }
     """.trimIndent()
 
     @Test
@@ -112,10 +112,10 @@ class CatalogueTransformWiringTest {
             task = "printAdded",
         )
 
-        val added = lines(output, "ADDED com.santimattius").map { it.removePrefix("ADDED ") }
+        val added = lines(output, "ADDED io.github.santimattius").map { it.removePrefix("ADDED ") }
         assertEquals(output, 2, added.size)
-        assertTrue(output, Regex("com\\.santimattius\\.android:hilt-trace-compiler:\\S+").matches(added[0]))
-        assertTrue(output, Regex("com\\.santimattius\\.android:hilt-trace-runtime:\\S+").matches(added[1]))
+        assertTrue(output, Regex("io\\.github\\.santimattius\\.android:hilt-trace-compiler:\\S+").matches(added[0]))
+        assertTrue(output, Regex("io\\.github\\.santimattius\\.android:hilt-trace-runtime:\\S+").matches(added[1]))
     }
 
     private val rulePrinter = """
@@ -152,7 +152,7 @@ class CatalogueTransformWiringTest {
             """
             plugins {
                 id("com.android.application")
-                id("com.santimattius.android.hilt.trace")
+                id("io.github.santimattius.android.hilt.trace")
             }
             android { namespace = "fixture.app"; compileSdk = 36; defaultConfig { minSdk = 24 } }
             $appScript

@@ -67,7 +67,7 @@ internal class ThrowawayApp(private val root: File, private val withPlugin: Bool
             """.trimIndent(),
         )
         System.getenv("ANDROID_HOME")?.let { root.resolve("local.properties").writeText("sdk.dir=$it") }
-        val plugin = if (withPlugin) """id("com.santimattius.android.hilt.trace")""" else ""
+        val plugin = if (withPlugin) """id("io.github.santimattius.android.hilt.trace")""" else ""
         root.resolve("build.gradle.kts").writeText(
             """
             plugins {
@@ -80,7 +80,7 @@ internal class ThrowawayApp(private val root: File, private val withPlugin: Bool
             }
             dependencies { implementation(files("libs/lib.jar")) }
             // The plugin-added coordinates are published later; they are irrelevant to these builds.
-            configurations.all { exclude(group = "com.santimattius.android") }
+            configurations.all { exclude(group = "io.github.santimattius.android") }
             $buildScriptExtras
             tasks.register("printTransformTasks") {
                 doLast { project.tasks.names.filter { it.startsWith("transform") && it.endsWith("ClassesWithAsm") }.forEach { println("TASK " + it) } }

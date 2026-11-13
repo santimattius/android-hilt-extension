@@ -59,7 +59,7 @@ tasks.pluginUnderTestMetadata {
 gradlePlugin {
     plugins {
         register("hiltTrace") {
-            id = "com.santimattius.android.hilt.trace"
+            id = "io.github.santimattius.android.hilt.trace"
             implementationClass = "com.santimattius.android.hilt.trace.plugin.HiltTracePlugin"
             displayName = "Hilt trace instrumentation"
             description = "Adds Perfetto trace slices around Hilt object creation and injection in debug variants."

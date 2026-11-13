@@ -3,7 +3,7 @@
 How to add Hilt Trace and the coroutine helpers to an Android project, which versions are supported, and how to consume the artifacts while they are unpublished. Related: [Tracing](TRACING.md), [Coroutines](COROUTINES.md), [Limitations](LIMITATIONS.md).
 
 > [!NOTE]
-> `1.0.0-alpha01` is not published to Maven Central. Snippets that use `com.santimattius.android:...:1.0.0-alpha01` coordinates show the intended form; they resolve only after publication. See [Consuming the artifacts](#consuming-the-artifacts).
+> `1.0.0-alpha01` is not published to Maven Central. Snippets that use `io.github.santimattius.android:...:1.0.0-alpha01` coordinates show the intended form; they resolve only after publication. See [Consuming the artifacts](#consuming-the-artifacts).
 
 ## Requirements
 
@@ -49,7 +49,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    id("com.santimattius.android.hilt.trace")
+    id("io.github.santimattius.android.hilt.trace")
 }
 
 ksp {
@@ -97,7 +97,7 @@ ksp {
 dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    ksp("com.santimattius.android:hilt-trace-compiler:1.0.0-alpha01")   // unpublished, see Consuming the artifacts
+    ksp("io.github.santimattius.android:hilt-trace-compiler:1.0.0-alpha01")   // unpublished, see Consuming the artifacts
 }
 ```
 
@@ -110,7 +110,7 @@ Evidence: `LibraryInstrumentationTest` builds a throwaway app with a library sub
 ```kotlin
 dependencies {
     // Unpublished: resolves only after publication. Inside this repository use project(":hilt-coroutines-runtime").
-    implementation("com.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha01")
+    implementation("io.github.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha01")
 }
 ```
 
@@ -120,8 +120,8 @@ The module brings `kotlinx-coroutines-core` and `hilt-android` as `api` dependen
 
 | Situation | How |
 |-----------|-----|
-| Before publication (this repository) | `settings.gradle.kts` uses `pluginManagement { includeBuild("hilt-trace-gradle-plugin") }`. `app/build.gradle.kts` substitutes `com.santimattius.android:hilt-trace-runtime` and `:hilt-trace-compiler` with the local projects, because the plugin adds them by coordinate. `:hilt-coroutines-runtime` is a plain `project(...)` dependency. |
+| Before publication (this repository) | `settings.gradle.kts` uses `pluginManagement { includeBuild("hilt-trace-gradle-plugin") }`. `app/build.gradle.kts` substitutes `io.github.santimattius.android:hilt-trace-runtime` and `:hilt-trace-compiler` with the local projects, because the plugin adds them by coordinate. `:hilt-coroutines-runtime` is a plain `project(...)` dependency. |
 | Another project, before publication | Not documented by this repository. A composite build of this repository with the same substitutions is the likely route; it has not been tried. |
-| After publication | Coordinates are `com.santimattius.android:<artifact>:<version>` (artifact ids in the [README](../README.md#modules)). Publishing is described in [Publishing](PUBLISHING.md). Whether the plugin marker artifact is published for plugin id resolution has not been verified. |
+| After publication | Coordinates are `io.github.santimattius.android:<artifact>:<version>`; the plugin id is `io.github.santimattius.android.hilt.trace` (artifact ids in the [README](../README.md#modules)). Publishing is described in [Publishing](PUBLISHING.md). The plugin marker artifact is generated under the plugin id (see [Limitations](LIMITATIONS.md#publishing-state)). |
 
 The current version, `libraryVersion` in `gradle.properties`, is `1.0.0-alpha01`.

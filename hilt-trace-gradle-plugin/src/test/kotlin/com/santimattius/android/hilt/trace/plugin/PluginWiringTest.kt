@@ -74,7 +74,7 @@ class PluginWiringTest {
             """
             plugins {
                 id("com.android.application")
-                id("com.santimattius.android.hilt.trace")
+                id("io.github.santimattius.android.hilt.trace")
             }
             android {
                 namespace = "fixture.app"
@@ -83,7 +83,7 @@ class PluginWiringTest {
                 buildTypes { create("benchmark") { initWith(getByName("release")) } }
             }
             // The plugin-added coordinates are published later; they are irrelevant to these builds.
-            configurations.all { exclude(group = "com.santimattius.android") }
+            configurations.all { exclude(group = "io.github.santimattius.android") }
             $extension
             """.trimIndent(),
         )
