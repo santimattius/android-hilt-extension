@@ -10,20 +10,39 @@ Runtime tracing for Hilt on Android, plus coroutine helpers for Hilt apps.
 - **Coroutine helpers** provide dispatcher and scope qualifiers, suspending adapters for `Provider` and `Lazy`, and a trace section that follows a coroutine.
 
 > [!WARNING]
-> **Pre-release (`1.0.0-alpha01`).** The four artifacts are not published to Maven Central yet, so there is no dependency to copy from a public repository. Today the sample app in this repository resolves them locally. See [Setup](docs/SETUP.md#consuming-the-artifacts).
+> **Pre-release (`1.0.0-alpha01`).** The four artifacts are available from Maven Central, but the APIs and instrumentation behavior may still change before a stable release. See [Setup](docs/SETUP.md#consuming-the-artifacts).
 
 ## Quick start
 
-For an application module that already uses Hilt with KSP. The `libs.*` aliases come from this repository's version catalog, and the `project(...)` line only works inside this repository, until the artifacts are published.
+For an application module that already uses Hilt with KSP. The `libs.*` aliases below represent dependencies from the consuming project's version catalog.
 
-1. Apply the plugin and name the module's catalogue:
+1. Make Maven Central available for both plugin and dependency resolution in `settings.gradle.kts`:
+
+   ```kotlin
+   pluginManagement {
+       repositories {
+           google()
+           mavenCentral()
+           gradlePluginPortal()
+       }
+   }
+
+   dependencyResolutionManagement {
+       repositories {
+           google()
+           mavenCentral()
+       }
+   }
+   ```
+
+2. Apply the plugin and name the module's catalogue:
 
    ```kotlin
    plugins {
        alias(libs.plugins.android.application)
        alias(libs.plugins.ksp)
        alias(libs.plugins.hilt)
-       id("io.github.santimattius.android.hilt.trace")
+       id("io.github.santimattius.android.hilt.trace") version "1.0.0-alpha01"
    }
 
    ksp {
@@ -31,7 +50,7 @@ For an application module that already uses Hilt with KSP. The `libs.*` aliases 
    }
    ```
 
-2. Add the dependencies:
+3. Add the dependencies:
 
    ```kotlin
    dependencies {
@@ -39,11 +58,11 @@ For an application module that already uses Hilt with KSP. The `libs.*` aliases 
        ksp(libs.hilt.compiler)
        implementation(libs.androidx.tracing)
        debugImplementation(libs.androidx.tracing.wire)      // writes trace files; optional
-       implementation(project(":hilt-coroutines-runtime"))  // coroutine helpers; optional
+       implementation("io.github.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha01")  // optional
    }
    ```
 
-3. Build and run a debug variant, then record a trace: [Tracing: Capture a trace](docs/TRACING.md#capture-a-trace).
+4. Build and run a debug variant, then record a trace: [Tracing: Capture a trace](docs/TRACING.md#capture-a-trace).
 
 Library modules, supported versions and the full explanation are in [Setup](docs/SETUP.md).
 
@@ -86,7 +105,7 @@ Details and the unverified combinations: [Setup: Supported toolchains](docs/SETU
 
 | Guide | Read it for |
 |-------|-------------|
-| [Setup](docs/SETUP.md) | Requirements, version compatibility, application and library module configuration, consuming the unpublished artifacts. |
+| [Setup](docs/SETUP.md) | Requirements, version compatibility, application and library module configuration, and Maven Central coordinates. |
 | [Tracing](docs/TRACING.md) | What gets a section, section names, categories, capturing a trace. |
 | [Coroutines](docs/COROUTINES.md) | Qualifiers, `SuspendProvider`, `SuspendLazy`, `Lazy.await`, `traceCoroutine`. |
 | [Limitations](docs/LIMITATIONS.md) | What is not instrumented, and the known constraints with their evidence. |

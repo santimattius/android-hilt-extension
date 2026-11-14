@@ -3,7 +3,7 @@
 Maintainer guide for releasing the four library artifacts to Maven Central. Publishing uses the [gradle-maven-publish-plugin](https://github.com/vanniktech/gradle-maven-publish-plugin); the shared configuration is the `hiltext.publishing` convention plugin in the `build-logic` included build.
 
 > [!NOTE]
-> Nothing has been published yet. The current version is `1.0.0-alpha01` (see [Setup](SETUP.md#consuming-the-artifacts)).
+> `1.0.0-alpha01` is available from Maven Central. The steps below describe how maintainers publish subsequent releases (see [Setup](SETUP.md#consuming-the-artifacts)).
 
 **Quick path:**
 

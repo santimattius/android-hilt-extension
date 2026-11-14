@@ -1,9 +1,9 @@
 # Setup
 
-How to add Hilt Trace and the coroutine helpers to an Android project, which versions are supported, and how to consume the artifacts while they are unpublished. Related: [Tracing](TRACING.md), [Coroutines](COROUTINES.md), [Limitations](LIMITATIONS.md).
+How to add Hilt Trace and the coroutine helpers to an Android project, which versions are supported, and how to consume the artifacts from Maven Central. Related: [Tracing](TRACING.md), [Coroutines](COROUTINES.md), [Limitations](LIMITATIONS.md).
 
 > [!NOTE]
-> `1.0.0-alpha01` is not published to Maven Central. Snippets that use `io.github.santimattius.android:...:1.0.0-alpha01` coordinates show the intended form; they resolve only after publication. See [Consuming the artifacts](#consuming-the-artifacts).
+> `1.0.0-alpha01` is a pre-release available from Maven Central. Its APIs and instrumentation behavior may change before a stable release.
 
 ## Requirements
 
@@ -42,14 +42,33 @@ The artifacts are compiled with Kotlin language and API level 2.2 and their POMs
 
 ## Application module
 
-The plugin applies to the application module only. It adds `hilt-trace-compiler` to the `ksp` configuration and `hilt-trace-runtime` to `implementation` itself, at the plugin's own version.
+The plugin applies to the application module only. It adds `hilt-trace-compiler` to the `ksp` configuration and `hilt-trace-runtime` to `implementation` itself, at the plugin's own version. The plugin marker is published to Maven Central, so add Maven Central to plugin resolution as well as dependency resolution in `settings.gradle.kts`:
+
+```kotlin
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+```
+
+Then configure the application module:
 
 ```kotlin
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    id("io.github.santimattius.android.hilt.trace")
+    id("io.github.santimattius.android.hilt.trace") version "1.0.0-alpha01"
 }
 
 ksp {
@@ -97,7 +116,7 @@ ksp {
 dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    ksp("io.github.santimattius.android:hilt-trace-compiler:1.0.0-alpha01")   // unpublished, see Consuming the artifacts
+    ksp("io.github.santimattius.android:hilt-trace-compiler:1.0.0-alpha01")
 }
 ```
 
@@ -109,7 +128,6 @@ Evidence: `LibraryInstrumentationTest` builds a throwaway app with a library sub
 
 ```kotlin
 dependencies {
-    // Unpublished: resolves only after publication. Inside this repository use project(":hilt-coroutines-runtime").
     implementation("io.github.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha01")
 }
 ```
@@ -120,8 +138,9 @@ The module brings `kotlinx-coroutines-core` and `hilt-android` as `api` dependen
 
 | Situation | How |
 |-----------|-----|
-| Before publication (this repository) | `settings.gradle.kts` uses `pluginManagement { includeBuild("hilt-trace-gradle-plugin") }`. `app/build.gradle.kts` substitutes `io.github.santimattius.android:hilt-trace-runtime` and `:hilt-trace-compiler` with the local projects, because the plugin adds them by coordinate. `:hilt-coroutines-runtime` is a plain `project(...)` dependency. |
-| Another project, before publication | Not documented by this repository. A composite build of this repository with the same substitutions is the likely route; it has not been tried. |
-| After publication | Coordinates are `io.github.santimattius.android:<artifact>:<version>`; the plugin id is `io.github.santimattius.android.hilt.trace` (artifact ids in the [README](../README.md#modules)). Publishing is described in [Publishing](PUBLISHING.md). The plugin marker artifact is generated under the plugin id (see [Limitations](LIMITATIONS.md#publishing-state)). |
+| Application plugin | Apply `io.github.santimattius.android.hilt.trace` at version `1.0.0-alpha01`. The plugin adds the matching compiler and runtime coordinates automatically. |
+| Library module with Hilt code | Add `io.github.santimattius.android:hilt-trace-compiler:1.0.0-alpha01` to `ksp`. |
+| Coroutine helpers | Add `io.github.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha01` to `implementation`. |
+| This repository | `settings.gradle.kts` includes the plugin build, and `app/build.gradle.kts` intentionally substitutes the runtime and compiler coordinates with local projects so repository builds validate the current source. |
 
 The current version, `libraryVersion` in `gradle.properties`, is `1.0.0-alpha01`.

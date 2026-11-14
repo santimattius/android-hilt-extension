@@ -51,7 +51,7 @@ Confirmed against Hilt 2.60.1 output.
 
 ## Publishing state
 
-- The four artifacts (`1.0.0-alpha01`) are not on Maven Central. A local `publishToMavenLocal` run of the plugin build generates the marker `io.github.santimattius.android.hilt.trace:io.github.santimattius.android.hilt.trace.gradle.plugin`; a marker's group is the plugin id, so the id sits under the verified `io.github.santimattius` namespace. Acceptance of the marker by Central has **not been verified**, because nothing has been uploaded.
+- The four artifacts and the Gradle plugin marker for `1.0.0-alpha01` are available from Maven Central. The marker is `io.github.santimattius.android.hilt.trace:io.github.santimattius.android.hilt.trace.gradle.plugin`; a marker's group is the plugin id, so it sits under the verified `io.github.santimattius` namespace.
 - Instrumented tests run on a device or emulator only; CI compiles and packages them but never runs them.
 
 ## Compose preview workaround

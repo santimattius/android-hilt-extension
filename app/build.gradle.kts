@@ -60,8 +60,8 @@ androidComponents {
     }
 }
 
-// The plugin adds the compiler and runtime at the build's own group and version. Those artifacts are
-// not published yet, so inside this build the coordinates resolve to the local projects.
+// The plugin adds the compiler and runtime at its own group and version. This repository intentionally
+// substitutes those coordinates with local projects so the sample validates the current source.
 configurations.configureEach {
     resolutionStrategy.dependencySubstitution {
         substitute(module("$libraryGroupId:hilt-trace-runtime")).using(project(":hilt-trace-runtime"))
