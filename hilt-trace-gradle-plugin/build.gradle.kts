@@ -35,7 +35,25 @@ tasks.processResources {
     filesMatching("hilt-trace-plugin.properties") { expand(coordinates) }
 }
 
+// The KSP processor of :hilt-trace-compiler, packaged from its sources as a jar for the real-Hilt TestKit
+// fixture (an included build cannot depend on a project of the root build). Test-only; never published.
+val compilerFixture: SourceSet = sourceSets.create("compilerFixture") {
+    kotlin.srcDir("../hilt-trace-compiler/src/main/kotlin")
+    resources.srcDir("../hilt-trace-compiler/src/main/resources")
+}
+val compilerFixtureJar = tasks.register<Jar>("compilerFixtureJar") {
+    archiveBaseName.set("hilt-trace-compiler-fixture")
+    from(compilerFixture.output)
+}
+tasks.test {
+    dependsOn(compilerFixtureJar)
+    val jar = compilerFixtureJar.flatMap { it.archiveFile }
+    jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-DhiltTrace.compilerJar=${jar.get().asFile.absolutePath}") })
+}
+
 dependencies {
+    "compilerFixtureCompileOnly"(libs.ksp.api)
+
     // AGP and ASM are supplied by the consumer build at runtime; never bundled into the plugin.
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.asm)
@@ -49,6 +67,9 @@ dependencies {
     testImplementation(libs.asm.util)
     testImplementation(gradleTestKit())
     testPlugins(libs.android.gradlePlugin)
+    // Real Hilt and KSP Gradle plugins for the real-Hilt library fixture (RealHiltLibraryTest).
+    testPlugins(libs.hilt.gradlePlugin)
+    testPlugins(libs.ksp.gradlePlugin)
 }
 
 // TestKit applies the plugin under test plus AGP for the fixture Android app.
