@@ -37,6 +37,9 @@ jobs:
       - name: Build, run tests and compile the instrumented tests
         run: ./gradlew build :app:assembleDebugAndroidTest :hilt-coroutines-runtime:assembleDebugAndroidTest --configuration-cache
 
+      - name: Test the instrumented-results guard
+        run: scripts/test-assert-instrumented-results.sh
+
       # The minified instrumented APK (R8 over app and tests) is only assembled here; it runs in the
       # instrumented-minified job.
       - name: Assemble the minified instrumented tests
@@ -71,6 +74,14 @@ jobs:
 
       - name: Run instrumented tests on the managed device
         run: ./gradlew instrumentedTestsCi --configuration-cache -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+
+      # AGP can finish the Gradle task green while the instrumentation crashed and no test ran; this fails
+      # the job unless the result XMLs show tests > 0 and no failures or testRunFailed.
+      - name: Assert the instrumented results prove a real run
+        if: always()
+        run: |
+          scripts/assert-instrumented-results.sh 'app/build/outputs/androidTest-results/managedDevice/debug/ci/TEST-*.xml'
+          scripts/assert-instrumented-results.sh 'hilt-coroutines-runtime/build/outputs/androidTest-results/managedDevice/debug/ci/TEST-*.xml'
 
       - name: Upload instrumented test reports
         if: always()
@@ -114,6 +125,12 @@ jobs:
 
       - name: Run instrumented tests against the minified build type
         run: ./gradlew instrumentedTestsMinifiedCi -PtestBuildType=minified --configuration-cache -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+
+      # The first run of this job was a false green: the instrumentation crashed, no test ran, and AGP did
+      # not fail the task. This step makes that case red.
+      - name: Assert the instrumented results prove a real run
+        if: always()
+        run: scripts/assert-instrumented-results.sh 'app/build/outputs/androidTest-results/managedDevice/minified/ci/TEST-*.xml'
 
       - name: Upload instrumented test reports
         if: always()
