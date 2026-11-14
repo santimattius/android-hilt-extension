@@ -57,4 +57,4 @@ Confirmed against Hilt 2.60.1 output.
 
 ## Compose preview workaround
 
-With AGP 9.5.0 and the Compose compiler plugin of Kotlin 2.4.21, the sample needs two settings for `:generateDebugComposePreviewRunfiles` (see `app/build.gradle.kts`). The failure is independent of Hilt Trace. Details: [Setup](SETUP.md#application-module).
+With AGP 9.5.0 and the Compose compiler plugin of Kotlin 2.4.21, the sample needs two settings for `:generateDebugComposePreviewRunfiles` (see `app/build.gradle.kts`). The failure is independent of Hilt Trace. Each half is checked to still be required: dropping either one (`-PdisableComposePreviewWorkaround=resources|unit-tests`) makes AGP 9.5.0 fail creating the task, while the control with both in place does not. `app/scripts/check-compose-preview-canary.sh` (CI job `compose-preview-canary`) exits 1 when a dropped half no longer fails, so the workaround can be removed. Observed locally once on AGP 9.5.0 / Kotlin 2.4.21; the CI job has not run yet. Details: [Setup](SETUP.md#application-module).

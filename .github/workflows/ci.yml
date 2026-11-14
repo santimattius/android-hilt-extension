@@ -78,3 +78,25 @@ jobs:
             hilt-coroutines-runtime/build/reports/androidTests/
             hilt-coroutines-runtime/build/outputs/androidTest-results/
           if-no-files-found: ignore
+
+  # Canary: fails when AGP/Compose stop needing the Compose Preview workaround in app/build.gradle.kts,
+  # so the workaround gets removed instead of lingering. Local: app/scripts/check-compose-preview-canary.sh
+  compose-preview-canary:
+    name: Compose Preview workaround canary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: "temurin"
+          java-version: "25"
+          cache: "gradle"
+
+      - name: Grant execute permission for scripts
+        run: chmod +x gradlew app/scripts/check-compose-preview-canary.sh
+
+      - name: Check the workaround is still required
+        run: app/scripts/check-compose-preview-canary.sh

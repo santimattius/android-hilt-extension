@@ -12,6 +12,13 @@ val androidMinSdkVersion: String by project
 val androidTargetSdkVersion: String by project
 val libraryGroupId: String by project
 
+// Canary switch (never set it in normal builds): -PdisableComposePreviewWorkaround=resources|unit-tests
+// drops one of the two settings below so scripts/check-compose-preview-canary.sh can prove each is still
+// needed.
+val dropPreviewWorkaround = providers.gradleProperty("disableComposePreviewWorkaround").orNull
+val keepPreviewResources = dropPreviewWorkaround != "resources"
+val keepPreviewUnitTests = dropPreviewWorkaround != "unit-tests"
+
 android {
     namespace = "io.github.santimattius.android.sample"
     compileSdk = androidTargetSdkVersion.toInt()
@@ -61,7 +68,7 @@ android {
         // task for every variant when the Compose compiler plugin is applied, and it fails while the
         // bytecode transform task resolves its dependencies unless Android resources and unit tests are
         // enabled for the variant. The failure is independent of the Hilt Trace plugin.
-        unitTests.isIncludeAndroidResources = true
+        if (keepPreviewResources) unitTests.isIncludeAndroidResources = true
         // androidx.tracing reads android.os.Process while initializing; the demo unit tests call it.
         unitTests.isReturnDefaultValues = true
         // Gradle Managed Device for CI: AGP downloads the system image, boots it headless and runs the
@@ -77,7 +84,7 @@ android {
 androidComponents {
     beforeVariants { variantBuilder ->
         // Second half of the Compose Preview workaround above: unit tests must exist for every variant.
-        (variantBuilder as? HasUnitTestBuilder)?.enableUnitTest = true
+        if (keepPreviewUnitTests) (variantBuilder as? HasUnitTestBuilder)?.enableUnitTest = true
     }
 }
 

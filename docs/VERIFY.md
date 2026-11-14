@@ -104,6 +104,14 @@ javap -c -p "$CLASSES/release/transformReleaseClassesWithAsm/$PKG/$SP" | grep -c
 unzip -l app/build/outputs/apk/release/app-release-unsigned.apk | grep -c 'hilt-trace'
 ```
 
+### Compose Preview workaround canary
+
+```bash
+app/scripts/check-compose-preview-canary.sh
+```
+
+Dry-runs `:app:generateDebugComposePreviewRunfiles` with the workaround in place (must work), then with each half dropped (must fail with `Compose Preview failed`). Exit 1 means a half is no longer needed and can be deleted from `app/build.gradle.kts`; exit 2 means an unrelated failure.
+
 ### Tracing survives R8
 
 ```bash
