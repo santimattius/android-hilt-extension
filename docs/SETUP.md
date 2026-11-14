@@ -122,7 +122,7 @@ dependencies {
 
 Do not apply the Gradle plugin to a library. Without the `ksp(...)` line the build still passes and the library's entry points are not instrumented. Ids that differ only by `:` versus `_` (`:a:b`, `:a_b`) write the same file name.
 
-Evidence: `LibraryInstrumentationTest` builds a throwaway app with a library subproject using a hand-written class shaped like a generated provider. No test builds a real Hilt-processed library (see [Limitations](LIMITATIONS.md)).
+Evidence: `LibraryInstrumentationTest` builds a throwaway app with a library subproject using a hand-written class shaped like a generated provider. `RealHiltLibraryTest` builds a library processed by real Hilt and KSP and shows its binding instrumented in the app's debug dex; the library catalogue does not yet reach the app transform for an Android library project (see [Limitations](LIMITATIONS.md)).
 
 ## Coroutine helpers
 
