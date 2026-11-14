@@ -23,3 +23,12 @@ tasks.named<io.github.santimattius.android.hilt.buildlogic.VerifyVersionAlignmen
 tasks.named("check") {
     gradle.includedBuilds.forEach { dependsOn(it.task(":check")) }
 }
+
+// Deterministic CI entry point for the instrumented tests: boots the Gradle Managed Device "ci"
+// (Pixel 6, API 34, aosp-atd; defined in :app and :hilt-coroutines-runtime) and runs every androidTest
+// suite of those modules. Needs hardware virtualization (KVM on Linux runners). See docs/VERIFY.md.
+tasks.register("instrumentedTestsCi") {
+    group = "verification"
+    description = "Runs the app and hilt-coroutines-runtime instrumented tests on the managed device 'ci'."
+    dependsOn(":app:ciDebugAndroidTest", ":hilt-coroutines-runtime:ciDebugAndroidTest")
+}

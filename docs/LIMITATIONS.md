@@ -53,7 +53,7 @@ Confirmed against Hilt 2.60.1 output.
 ## Publishing state
 
 - The four artifacts and the Gradle plugin marker for `1.0.0-alpha01` are available from Maven Central. The marker is `io.github.santimattius.android.hilt.trace:io.github.santimattius.android.hilt.trace.gradle.plugin`; a marker's group is the plugin id, so it sits under the verified `io.github.santimattius` namespace.
-- Instrumented tests run on a device or emulator only; CI compiles and packages them but never runs them.
+- Instrumented tests need a device or emulator. The `instrumented` CI job runs them on a Gradle Managed Device (`./gradlew instrumentedTestsCi`); it is defined but **its first run has not been observed**, so treat CI execution as unproven until it is green. The `build` job compiles and packages them.
 
 ## Compose preview workaround
 

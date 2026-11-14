@@ -64,6 +64,13 @@ android {
         unitTests.isIncludeAndroidResources = true
         // androidx.tracing reads android.os.Process while initializing; the demo unit tests call it.
         unitTests.isReturnDefaultValues = true
+        // Gradle Managed Device for CI: AGP downloads the system image, boots it headless and runs the
+        // instrumented tests (task :app:ciDebugAndroidTest). Same definition as :hilt-coroutines-runtime.
+        managedDevices.localDevices.create("ci") {
+            device = "Pixel 6"
+            apiLevel = 34
+            systemImageSource = "aosp-atd"
+        }
     }
 }
 
