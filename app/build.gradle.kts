@@ -34,6 +34,20 @@ android {
                 "proguard-rules.pro"
             )
         }
+        // Debug-like and instrumented (see hiltTrace { variants }) but shrunk and obfuscated by R8, so
+        // :app:verifyMinifiedTracing can prove tracing survives minification. Release stays unminified
+        // and uninstrumented.
+        create("minified") {
+            initWith(getByName("debug"))
+            isMinifyEnabled = true
+            isDebuggable = false
+            matchingFallbacks += "debug"
+            signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -73,6 +87,38 @@ ksp {
     arg("hiltTrace.module", ":app")
 }
 
+hiltTrace {
+    // The default is debug and benchmark; the minified variant is added so R8 runs over instrumented code.
+    variants.set(listOf("debug", "benchmark", "minified"))
+}
+
+// Proof that tracing survives R8: assembles the minified variant and checks its dex. See docs/VERIFY.md.
+val sdkDirectory = androidComponents.sdkComponents.sdkDirectory
+val dexdumpPath = sdkDirectory.map { sdk ->
+    sdk.dir("build-tools").asFile.listFiles()
+        ?.sortedBy { dir -> dir.name.split('.').joinToString(".") { part -> part.padStart(5, '0') } }
+        ?.map { File(it, "dexdump") }
+        ?.lastOrNull { it.exists() }
+        ?.absolutePath
+        ?: error("dexdump not found under ${sdk.asFile}/build-tools")
+}
+tasks.register<Exec>("verifyMinifiedTracing") {
+    group = "verification"
+    description = "Assembles the minified variant and checks that HiltTrace call sites survive R8."
+    dependsOn("assembleMinified")
+    executable = "bash"
+    val script = layout.projectDirectory.file("scripts/check-minified-tracing.sh")
+    val apk = layout.buildDirectory.file("outputs/apk/minified/app-minified.apk")
+    val mapping = layout.buildDirectory.file("outputs/mapping/minified/mapping.txt")
+    val dexdump = dexdumpPath
+    inputs.file(script)
+    // Locals only: a lambda that touched a script-level val would capture the build script and break the
+    // configuration cache.
+    argumentProviders += CommandLineArgumentProvider {
+        listOf(script.asFile.absolutePath, apk.get().asFile.absolutePath, mapping.get().asFile.absolutePath, dexdump.get())
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -89,6 +135,8 @@ dependencies {
     // tracing-wire does not expose androidx.tracing on the compile classpath, so declare it explicitly.
     implementation(libs.androidx.tracing)
     debugImplementation(libs.androidx.tracing.wire)
+    // The minified variant needs a tracing driver too, or R8 has nothing that can enable a category.
+    "minifiedImplementation"(libs.androidx.tracing.wire)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
