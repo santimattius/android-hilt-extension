@@ -35,7 +35,7 @@ Confirmed against Hilt 2.60.1 output.
 
 | Constraint | Evidence |
 |------------|----------|
-| With a category disabled, `HiltTrace.begin` returns `null` and allocates nothing; the call site still runs in instrumented builds. The cost of that check has **not been measured**: a microbenchmark exists but has not been run on a device ([Benchmark](BENCHMARK.md)). | `HiltTraceTest` (disabled-category behavior), `CallPathsTest`; no recorded numbers. |
+| With a category disabled, `HiltTrace.begin` returns `null` and allocates nothing; the call site still runs in instrumented builds. The cost of that check has **not been measured**: a microbenchmark exists; the `benchmark-smoke` CI job (**pending CI**) only runs it on an emulator to show it executes, and emulator timings are not a measurement. It has not been run on a physical device ([Benchmark](BENCHMARK.md)). | `HiltTraceTest` (disabled-category behavior), `CallPathsTest`; no recorded numbers. |
 | `begin`/`end` must run on one thread in one synchronous method and nest strictly (LIFO). The instrumented code satisfies this; manual use must too. | `HiltTrace` KDoc. |
 | Nothing records unless a driver enables the category. Without the `START` broadcast the automatic `tracing-wire` driver recorded nothing. | [Tracing](TRACING.md), run on an Android 15 emulator. |
 | The application scope is never cancelled automatically; call `ApplicationScopeCloser.close()`. | `CoroutinesModuleUnitTest`. |
