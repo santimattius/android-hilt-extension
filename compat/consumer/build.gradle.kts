@@ -10,6 +10,8 @@ plugins {
 
 val hiltVersion = providers.gradleProperty("compatHilt").get()
 val libraryVersion = providers.gradleProperty("compatLibraryVersion").get()
+// The libraries declare minSdk 24 (gradle.properties); compatMinSdk lets the matrix probe other values.
+val consumerMinSdk = providers.gradleProperty("compatMinSdk").orElse("24").get().toInt()
 
 android {
     namespace = "com.example.consumer"
@@ -17,7 +19,7 @@ android {
     compileSdk = 35
     defaultConfig {
         applicationId = "com.example.consumer"
-        minSdk = 24
+        minSdk = consumerMinSdk
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"

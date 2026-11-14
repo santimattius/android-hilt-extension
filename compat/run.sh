@@ -2,18 +2,21 @@
 # Builds the throwaway consumer in compat/consumer against locally published artifacts and checks
 # that the debug dex carries the Hilt trace instrumentation and the release dex does not.
 #
-# Usage: compat/run.sh <agp> <kotlin> <hilt> <ksp>
+# Usage: compat/run.sh <agp> <kotlin> <hilt> <ksp> [<consumer-minSdk>]   (minSdk defaults to 24)
 # Environment:
 #   COMPAT_M2            local Maven repository directory (default: a fresh temporary directory)
 #   COMPAT_JAVA_HOME     JDK used by the consumer build (default: the current JDK)
 #   COMPAT_SKIP_PUBLISH  set to 1 to reuse artifacts already present in COMPAT_M2
+#   COMPAT_EXPECT_MIN_SDK_REJECTION  set to 1 to expect the manifest merger to reject the consumer's
+#                        minSdk because the published libraries declare a higher one (minSdk probe);
+#                        the run then passes only if that exact rejection happens.
 set -euo pipefail
 
-if [ "$#" -ne 4 ]; then
-  echo "usage: $0 <agp> <kotlin> <hilt> <ksp>" >&2
+if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+  echo "usage: $0 <agp> <kotlin> <hilt> <ksp> [<consumer-minSdk>]" >&2
   exit 2
 fi
-AGP=$1 KOTLIN=$2 HILT=$3 KSP=$4
+AGP=$1 KOTLIN=$2 HILT=$3 KSP=$4 MIN_SDK=${5:-24}
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 M2=${COMPAT_M2:-$(mktemp -d)}
@@ -31,11 +34,28 @@ CONSUMER_ARGS=(
   -p "$ROOT/compat/consumer"
   "-Dmaven.repo.local=$M2"
   "-PcompatAgp=$AGP" "-PcompatKotlin=$KOTLIN" "-PcompatHilt=$HILT" "-PcompatKsp=$KSP"
-  "-PcompatLibraryVersion=$LIBRARY_VERSION"
+  "-PcompatLibraryVersion=$LIBRARY_VERSION" "-PcompatMinSdk=$MIN_SDK"
 )
 if [ -n "${COMPAT_JAVA_HOME:-}" ]; then
   CONSUMER_ARGS+=("-Dorg.gradle.java.home=$COMPAT_JAVA_HOME")
 fi
+if [ "${COMPAT_EXPECT_MIN_SDK_REJECTION:-0}" = "1" ]; then
+  LOG=$(mktemp)
+  if "$GRADLEW" "${CONSUMER_ARGS[@]}" clean processDebugMainManifest >"$LOG" 2>&1; then
+    echo "expected the manifest merger to reject minSdk $MIN_SDK, but the build succeeded:" >&2
+    echo "the libraries may now support it; update docs/SETUP.md and docs/LIMITATIONS.md and the matrix." >&2
+    exit 1
+  fi
+  if grep -q "uses-sdk:minSdkVersion $MIN_SDK cannot be smaller than version" "$LOG"; then
+    grep -m1 "cannot be smaller than version" "$LOG" | cut -c1-300
+    echo "minSdk $MIN_SDK rejected by the manifest merger, as expected"
+    exit 0
+  fi
+  echo "build failed, but not with the expected minSdk rejection (last lines):" >&2
+  tail -n 30 "$LOG" >&2
+  exit 1
+fi
+
 "$GRADLEW" "${CONSUMER_ARGS[@]}" clean assembleDebug assembleRelease
 
 "$ROOT/compat/check-dex.sh" "$ROOT/compat/consumer"
