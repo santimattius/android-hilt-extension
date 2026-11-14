@@ -7,7 +7,9 @@ import com.android.build.api.variant.ApplicationVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE
+import java.util.concurrent.Callable
 
 /**
  * Applied to the application module only. Registers [HiltTraceClassVisitorFactory] for the
@@ -76,7 +78,27 @@ public class HiltTracePlugin : Plugin<Project> {
         }.files
         val kspTask = "ksp${variant.name.replaceFirstChar(Char::uppercase)}Kotlin"
         val ownResources = project.files(project.layout.buildDirectory.dir("generated/ksp/${variant.name}/resources"))
-        return dependencies + ownResources.builtBy(project.tasks.matching { it.name == kspTask })
+        return dependencies + ownResources.builtBy(project.tasks.matching { it.name == kspTask }) + libraryResources(project, variant)
+    }
+
+    /**
+     * The KSP resources directory of every Android library project on the variant's runtime classpath.
+     *
+     * KSP writes the catalogue to `generated/ksp/<variant>/resources`, but an Android library does not
+     * package that directory: the catalogue is in none of the library's variants (`android-classes-jar`,
+     * `android-java-res`, `jar`), so [CatalogueTransform] never sees it. The directory is read in place,
+     * when the transform runs, which is after the library's KSP task: the library's classes, which the
+     * app consumes, are compiled after it. The dependency graph is resolved lazily, at execution time. The
+     * library variant matches the app variant by name.
+     */
+    private fun libraryResources(project: Project, variant: ApplicationVariant): FileCollection {
+        val libraries = {
+            variant.runtimeConfiguration.incoming.resolutionResult.allComponents.map { it.id }
+                .filterIsInstance<ProjectComponentIdentifier>().map { it.projectPath }.distinct()
+                .mapNotNull(project.rootProject::findProject)
+                .filter { it.plugins.hasPlugin("com.android.library") }
+        }
+        return project.files(Callable { libraries().map { it.layout.buildDirectory.dir("generated/ksp/${variant.name}/resources") } })
     }
 
     private companion object {
