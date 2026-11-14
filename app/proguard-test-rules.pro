@@ -11,6 +11,7 @@
 -keep class io.github.santimattius.android.sample.android.FragmentHostActivity { *; }
 -keep class io.github.santimattius.android.sample.demo.DemoCardState { *; }
 -keep class io.github.santimattius.android.sample.demo.DemoCatalog { *; }
+-keep class io.github.santimattius.android.sample.demo.DemoSpec { *; }
 -keep class io.github.santimattius.android.sample.demo.DemoId { *; }
 -keep class io.github.santimattius.android.sample.ui.DemoScreenKt { *; }
 -keep class io.github.santimattius.android.sample.ui.theme.ThemeKt { *; }
@@ -31,6 +32,7 @@
 -keep class androidx.activity.** { *; }
 -keep class androidx.lifecycle.** { *; }
 -keep class androidx.core.** { *; }
+-keep class androidx.fragment.** { *; }
 -keep class androidx.collection.** { *; }
 -keep class androidx.concurrent.** { *; }
 -keep class androidx.tracing.** { *; }
