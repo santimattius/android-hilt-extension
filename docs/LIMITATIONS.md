@@ -25,7 +25,7 @@ Confirmed against Hilt 2.60.1 output.
 | Coupled to the shape of Hilt-generated classes (verified on 2.60.1). An unknown shape, a method near 64 KB, or any error leaves the class unchanged with one warning. | `FailOpenTest`, `ASM` tests on captured output. |
 | A library needs `ksp(hilt-trace-compiler)` and `hiltTrace.module`, or its entry points are not instrumented. The build passes either way. | `LibraryInstrumentationTest`, `StaleCatalogueTest`. |
 | Library coverage is shown only with a hand-written provider fixture, not Hilt output from a real library module. | `LibraryInstrumentationTest` header. |
-| Fragments are covered by ASM tests only; the sample has no Fragment. | `InjectRuleTest`. |
+| A Fragment is traced as `hilt.inject` `<Fragment>.members`, shown with the sample's `DemoFragment` on an emulator (one run, Android 15). Other Fragment shapes (nested, `DialogFragment`, retained) are covered by ASM tests only. | `FragmentTraceCaptureTest` (instrumented), `InjectRuleTest`. |
 | KSP only; there is no kapt path. | Project constraint, `CatalogueProcessor`. |
 | `minSdk` 24 for the library modules and the sample. Lower values are untested. | `gradle.properties`. |
 | Validated versions are listed in [Setup: Supported toolchains](SETUP.md#supported-toolchains). Others are unverified. | `gradle/libs.versions.toml`, `.github/workflows/compat.yml`. |
@@ -47,7 +47,8 @@ Confirmed against Hilt 2.60.1 output.
 ## Release and R8
 
 - Release classes are not instrumented. With minification off the sample's release dex still holds the unused `HiltTrace` classes.
-- Behavior of an R8-minified build (shrinking the runtime classes, keep rules for `HiltTrace`) has **not been verified**; the sample builds release with `isMinifyEnabled = false`.
+- The sample's `minified` build type (debug-like, instrumented, `isMinifyEnabled = true`) keeps the instrumentation under R8 with no extra keep rules: `./gradlew :app:verifyMinifiedTracing` finds the `hilt.inject`/`hilt.create` categories and the slice names (activity, fragment, view, service, ViewModel) in its dex. R8 inlines `HiltTrace` into the call sites and removes the class, so a keep rule for it is not needed. Without a tracing driver (`tracing-wire`) on that variant R8 dropped the call sites, so a minified build that should record needs the driver. Evidence: `verifyMinifiedTracing`, run once on the sample.
+- **Not verified:** that the minified APK records slices at runtime (the instrumented tests run against debug only), and any minified release build; the sample's release stays `isMinifyEnabled = false` and uninstrumented, and `verifyMinifiedTracing` does not touch it.
 
 ## Publishing state
 
