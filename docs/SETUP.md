@@ -33,6 +33,7 @@ The artifacts are compiled with Kotlin language and API level 2.2 and their POMs
 | AGP 9.1.1, Kotlin 2.2.21, KSP 2.3.13, Hilt 2.59.2 | Validated: debug and release build, debug instrumented, release not. |
 | AGP 9.1.1, Kotlin 2.2.21, KSP 2.3.13, Hilt 2.60.1 | Validated, same result. |
 | AGP 9.5.0, Kotlin 2.4.21, Hilt 2.60.1 | This repository's own build (the sample app). |
+| minSdk 23 consumer (AGP 9.1.1, Kotlin 2.2.21, Hilt 2.60.1) | Rejected by the manifest merger because the libraries declare minSdk 24. The compat job asserts this rejection; runtime behavior on API 23 is not tested. `androidx.tracing` 2.0.5 itself is minSdk 23. |
 | Anything below AGP 9.1.1 or Kotlin 2.2.21, other KSP or Hilt versions | Unverified. |
 
 - **Floor.** AGP 9.1.1 and Kotlin 2.2.21 are the lowest versions that were tried, not a proven minimum.
@@ -122,7 +123,7 @@ dependencies {
 
 Do not apply the Gradle plugin to a library. Without the `ksp(...)` line the build still passes and the library's entry points are not instrumented. Ids that differ only by `:` versus `_` (`:a:b`, `:a_b`) write the same file name.
 
-Evidence: `LibraryInstrumentationTest` builds a throwaway app with a library subproject using a hand-written class shaped like a generated provider. No test builds a real Hilt-processed library (see [Limitations](LIMITATIONS.md)).
+Evidence: `LibraryInstrumentationTest` builds a throwaway app with a library subproject using a hand-written class shaped like a generated provider. `RealHiltLibraryTest` builds a library processed by real Hilt and KSP and shows its binding instrumented in the app's debug dex; the library catalogue does not yet reach the app transform for an Android library project (see [Limitations](LIMITATIONS.md)).
 
 ## Coroutine helpers
 

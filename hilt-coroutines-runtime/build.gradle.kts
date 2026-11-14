@@ -17,6 +17,13 @@ android {
         // androidx.tracing reads android.os.Process (pid/tid) while initializing; the unit-test
         // android.jar stubs would throw without default return values.
         unitTests.isReturnDefaultValues = true
+        // Gradle Managed Device for CI (task :hilt-coroutines-runtime:ciDebugAndroidTest); keep the
+        // definition identical to the one in :app.
+        managedDevices.localDevices.create("ci") {
+            device = "Pixel 6"
+            apiLevel = 34
+            systemImageSource = "aosp-atd"
+        }
     }
 }
 

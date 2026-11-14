@@ -33,13 +33,22 @@ What the app suite covers:
 | Test class | Covers |
 |------------|--------|
 | `TraceCaptureTest` | Installs a recording tracer and checks the real debug build: `hilt.create`/`hilt.inject` nesting, categories off and on independently, plus the section of every sample action (ViewModel, View, Service, singleton once, `Provider` per get, `Lazy`, `traceCoroutine` on and off). |
+| `FragmentTraceCaptureTest` | Launches a real `@AndroidEntryPoint` fragment in a real host activity on the debug build and checks its `hilt.inject` `DemoFragment.members` slice with `GreetingRepository` created inside it. Single class: `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.github.santimattius.android.sample.FragmentTraceCaptureTest`. |
 | `MainActivityDemoTest` | Drives the real activity and asserts every stable result clause on each card: activity recreation and its greeting, the injected view's own text, all dispatcher qualifiers, provider/lazy outcomes, and cancellation behavior. |
 | `DemoScreenTest` | The stateless screen: empty state, click callback, result, running state. |
 
 > [!WARNING]
 > The Gradle exit status can be 0 even when the instrumentation run failed. Read the XML in `app/build/outputs/androidTest-results/connected/` (`tests` above 0, `failures` and `errors` 0).
 
-CI only compiles the instrumented tests (`:app:assembleDebugAndroidTest`, `:hilt-coroutines-runtime:assembleDebugAndroidTest`).
+### On a Gradle Managed Device (no attached device)
+
+```bash
+./gradlew instrumentedTestsCi
+```
+
+Boots the managed device `ci` (Pixel 6, API 34, `aosp-atd`, defined in `app/build.gradle.kts` and `hilt-coroutines-runtime/build.gradle.kts`) and runs both suites; the per-module tasks are `:app:ciDebugAndroidTest` and `:hilt-coroutines-runtime:ciDebugAndroidTest`. The first run downloads the system image. It needs hardware virtualization (KVM on Linux). The `instrumented` job in `.github/workflows/ci.yml` runs this task. Status: the first CI run on PR #56 passed (34 tests, 0 failures, 0 skipped: `app` 30, `hilt-coroutines-runtime` 4). It has not been run locally, where no emulator was available.
+
+The `build` job still compiles and packages the instrumented tests (`:app:assembleDebugAndroidTest`, `:hilt-coroutines-runtime:assembleDebugAndroidTest`).
 
 ## 3. The sample app
 
@@ -68,7 +77,7 @@ The screen is a list of cards. Each has a title, the promise, the trace section 
 
 There is no tracing on/off toggle: the library has none (see [Tracing](TRACING.md)). Compare a capture taken without `START` (no sections) to one taken with it.
 
-The sample has no Fragment card, so Fragment injection is not exercised here (see [Limitations](LIMITATIONS.md)).
+Fragment injection has no card. `FragmentHostActivity` (not exported, no launcher entry) hosts `DemoFragment`, and `FragmentTraceCaptureTest` launches it (see [section 2](#2-instrumented-tests-device-or-emulator)).
 
 ## 4. Capture a trace
 
@@ -94,6 +103,22 @@ javap -c -p "$CLASSES/release/transformReleaseClassesWithAsm/$PKG/$SP" | grep -c
 # Release APK: no catalogue entry (prints 0)
 unzip -l app/build/outputs/apk/release/app-release-unsigned.apk | grep -c 'hilt-trace'
 ```
+
+### Compose Preview workaround canary
+
+```bash
+app/scripts/check-compose-preview-canary.sh
+```
+
+Dry-runs `:app:generateDebugComposePreviewRunfiles` with the workaround in place (must work), then with each half dropped (must fail with `Compose Preview failed`). Exit 1 means a half is no longer needed and can be deleted from `app/build.gradle.kts`; exit 2 means an unrelated failure.
+
+### Tracing survives R8
+
+```bash
+./gradlew :app:verifyMinifiedTracing
+```
+
+Assembles the sample's `minified` build type (debug-like, instrumented through `hiltTrace { variants }`, `isMinifyEnabled = true`) and runs `app/scripts/check-minified-tracing.sh` on its APK. It needs `dexdump` from the Android SDK build-tools and fails when the R8 mapping is missing or when the dex lacks the `hilt.inject`/`hilt.create` categories or the slice names of the sample's entry points. It proves the instrumentation is still in the minified dex, not that the APK records at runtime. Release is not part of this check and stays unminified and uninstrumented.
 
 ## 6. Troubleshooting
 

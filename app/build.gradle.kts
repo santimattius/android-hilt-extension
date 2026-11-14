@@ -12,6 +12,13 @@ val androidMinSdkVersion: String by project
 val androidTargetSdkVersion: String by project
 val libraryGroupId: String by project
 
+// Canary switch (never set it in normal builds): -PdisableComposePreviewWorkaround=resources|unit-tests
+// drops one of the two settings below so scripts/check-compose-preview-canary.sh can prove each is still
+// needed.
+val dropPreviewWorkaround = providers.gradleProperty("disableComposePreviewWorkaround").orNull
+val keepPreviewResources = dropPreviewWorkaround != "resources"
+val keepPreviewUnitTests = dropPreviewWorkaround != "unit-tests"
+
 android {
     namespace = "io.github.santimattius.android.sample"
     compileSdk = androidTargetSdkVersion.toInt()
@@ -34,6 +41,20 @@ android {
                 "proguard-rules.pro"
             )
         }
+        // Debug-like and instrumented (see hiltTrace { variants }) but shrunk and obfuscated by R8, so
+        // :app:verifyMinifiedTracing can prove tracing survives minification. Release stays unminified
+        // and uninstrumented.
+        create("minified") {
+            initWith(getByName("debug"))
+            isMinifyEnabled = true
+            isDebuggable = false
+            matchingFallbacks += "debug"
+            signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -47,16 +68,23 @@ android {
         // task for every variant when the Compose compiler plugin is applied, and it fails while the
         // bytecode transform task resolves its dependencies unless Android resources and unit tests are
         // enabled for the variant. The failure is independent of the Hilt Trace plugin.
-        unitTests.isIncludeAndroidResources = true
+        if (keepPreviewResources) unitTests.isIncludeAndroidResources = true
         // androidx.tracing reads android.os.Process while initializing; the demo unit tests call it.
         unitTests.isReturnDefaultValues = true
+        // Gradle Managed Device for CI: AGP downloads the system image, boots it headless and runs the
+        // instrumented tests (task :app:ciDebugAndroidTest). Same definition as :hilt-coroutines-runtime.
+        managedDevices.localDevices.create("ci") {
+            device = "Pixel 6"
+            apiLevel = 34
+            systemImageSource = "aosp-atd"
+        }
     }
 }
 
 androidComponents {
     beforeVariants { variantBuilder ->
         // Second half of the Compose Preview workaround above: unit tests must exist for every variant.
-        (variantBuilder as? HasUnitTestBuilder)?.enableUnitTest = true
+        if (keepPreviewUnitTests) (variantBuilder as? HasUnitTestBuilder)?.enableUnitTest = true
     }
 }
 
@@ -71,6 +99,38 @@ configurations.configureEach {
 
 ksp {
     arg("hiltTrace.module", ":app")
+}
+
+hiltTrace {
+    // The default is debug and benchmark; the minified variant is added so R8 runs over instrumented code.
+    variants.set(listOf("debug", "benchmark", "minified"))
+}
+
+// Proof that tracing survives R8: assembles the minified variant and checks its dex. See docs/VERIFY.md.
+val sdkDirectory = androidComponents.sdkComponents.sdkDirectory
+val dexdumpPath = sdkDirectory.map { sdk ->
+    sdk.dir("build-tools").asFile.listFiles()
+        ?.sortedBy { dir -> dir.name.split('.').joinToString(".") { part -> part.padStart(5, '0') } }
+        ?.map { File(it, "dexdump") }
+        ?.lastOrNull { it.exists() }
+        ?.absolutePath
+        ?: error("dexdump not found under ${sdk.asFile}/build-tools")
+}
+tasks.register<Exec>("verifyMinifiedTracing") {
+    group = "verification"
+    description = "Assembles the minified variant and checks that HiltTrace call sites survive R8."
+    dependsOn("assembleMinified")
+    executable = "bash"
+    val script = layout.projectDirectory.file("scripts/check-minified-tracing.sh")
+    val apk = layout.buildDirectory.file("outputs/apk/minified/app-minified.apk")
+    val mapping = layout.buildDirectory.file("outputs/mapping/minified/mapping.txt")
+    val dexdump = dexdumpPath
+    inputs.file(script)
+    // Locals only: a lambda that touched a script-level val would capture the build script and break the
+    // configuration cache.
+    argumentProviders += CommandLineArgumentProvider {
+        listOf(script.asFile.absolutePath, apk.get().asFile.absolutePath, mapping.get().asFile.absolutePath, dexdump.get())
+    }
 }
 
 dependencies {
@@ -89,6 +149,8 @@ dependencies {
     // tracing-wire does not expose androidx.tracing on the compile classpath, so declare it explicitly.
     implementation(libs.androidx.tracing)
     debugImplementation(libs.androidx.tracing.wire)
+    // The minified variant needs a tracing driver too, or R8 has nothing that can enable a category.
+    "minifiedImplementation"(libs.androidx.tracing.wire)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
