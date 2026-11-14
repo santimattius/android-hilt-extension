@@ -24,11 +24,11 @@ No timing has been recorded or claimed. Microbenchmark numbers need a device (pr
 | Run the JVM unit test | `./gradlew :benchmark-micro:testReleaseUnitTest` |
 | Run on a connected device | `./gradlew :benchmark-micro:runMicrobenchmark` |
 
-On an emulator the runner refuses to measure; for a smoke run only, add `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR`. Do not quote emulator numbers.
+On an emulator the runner refuses to measure; for a smoke run only, add `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,NOT-AOT-COMPILED` (the emulator image is not `speed`-compiled, so the runner raises `NOT-AOT-COMPILED` as well). Do not quote emulator numbers.
 
 ## CI smoke run
 
-The `benchmark-smoke` CI job runs `./gradlew microbenchmarkSmokeCi -PbenchmarkSmoke=true` on a Gradle Managed Device (`smoke`: Pixel 6, API 34, `aosp-atd`, same image as the instrumented jobs). The property sets the runner argument `androidx.benchmark.suppressErrors=EMULATOR` for that run only; without it the runner keeps refusing emulators. The report and any benchmark JSON are uploaded as the `benchmark-smoke-output` artifact.
+The `benchmark-smoke` CI job runs `./gradlew microbenchmarkSmokeCi -PbenchmarkSmoke=true` on a Gradle Managed Device (`smoke`: Pixel 6, API 34, `aosp-atd`, same image as the instrumented jobs). The property sets the runner argument `androidx.benchmark.suppressErrors=EMULATOR,NOT-AOT-COMPILED` for that run only (the first CI run suppressed only `EMULATOR` and failed with `NOT-AOT-COMPILED`); without it the runner keeps refusing emulators. The report and any benchmark JSON are uploaded as the `benchmark-smoke-output` artifact.
 
 **The CI run only proves that the benchmark executes end to end. Emulator timings are not a measurement of overhead**; the job reads no number, asserts no threshold, and this repository still states no overhead figure. Status: configuration checked locally with `--dry-run`; the on-device run is **pending CI** (no emulator locally).
 

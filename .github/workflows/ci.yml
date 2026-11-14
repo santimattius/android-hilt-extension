@@ -196,8 +196,8 @@ jobs:
 
   # Smoke run of the microbenchmark on a Gradle Managed Device. It only proves the benchmark executes end
   # to end: emulator timings are NOT a measurement of overhead and no figure is recorded or claimed. The
-  # runner refuses emulators, so -PbenchmarkSmoke=true suppresses that one error
-  # (androidx.benchmark.suppressErrors=EMULATOR). Local equivalent: ./gradlew microbenchmarkSmokeCi -PbenchmarkSmoke=true
+  # runner refuses emulators and non-AOT-compiled installs, so -PbenchmarkSmoke=true suppresses those
+  # two errors (androidx.benchmark.suppressErrors=EMULATOR,NOT-AOT-COMPILED). Local equivalent: ./gradlew microbenchmarkSmokeCi -PbenchmarkSmoke=true
   benchmark-smoke:
     name: Microbenchmark smoke (managed device)
     runs-on: ubuntu-latest

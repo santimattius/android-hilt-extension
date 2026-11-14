@@ -14,12 +14,13 @@ android {
     testBuildType = "release"
 
     // CI smoke run only (-PbenchmarkSmoke=true, used by :microbenchmarkSmokeCi): AndroidX Benchmark
-    // refuses to run on an emulator unless that error is suppressed. The run then proves the benchmark
+    // refuses to run on an emulator, and without full AOT compilation, unless those two errors
+    // (EMULATOR, NOT-AOT-COMPILED) are suppressed; the first CI run failed on NOT-AOT-COMPILED alone. The run then proves the benchmark
     // executes end to end; emulator timings are not a measurement. Without the property the runner
     // keeps refusing emulators.
     if (providers.gradleProperty("benchmarkSmoke").orNull == "true") {
         defaultConfig {
-            testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "EMULATOR"
+            testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "EMULATOR,NOT-AOT-COMPILED"
         }
     }
 
