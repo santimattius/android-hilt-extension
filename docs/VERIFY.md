@@ -48,6 +48,14 @@ What the app suite covers:
 
 Boots the managed device `ci` (Pixel 6, API 34, `aosp-atd`, defined in `app/build.gradle.kts` and `hilt-coroutines-runtime/build.gradle.kts`) and runs both suites; the per-module tasks are `:app:ciDebugAndroidTest` and `:hilt-coroutines-runtime:ciDebugAndroidTest`. The first run downloads the system image. It needs hardware virtualization (KVM on Linux). The `instrumented` job in `.github/workflows/ci.yml` runs this task. Status: the first CI run on PR #56 passed (34 tests, 0 failures, 0 skipped: `app` 30, `hilt-coroutines-runtime` 4). It has not been run locally, where no emulator was available.
 
+Against the minified build type (R8 over the app and the tests):
+
+```bash
+./gradlew instrumentedTestsMinifiedCi -PtestBuildType=minified
+```
+
+`-PtestBuildType=minified` makes `:app` run its androidTest against `minified` instead of `debug` (AGP allows one test build type per build), so the task is `:app:ciMinifiedAndroidTest`; without the property `instrumentedTestsMinifiedCi` fails fast. The keep rules the tests need are in `app/proguard-test-rules.pro` and reach R8 only with that property, so `verifyMinifiedTracing` and normal builds are unchanged. The `instrumented-minified` job in `.github/workflows/ci.yml` runs it, and the `build` job assembles `:app:assembleMinifiedAndroidTest`. Status: the APK assembles locally; the on-device run is **pending CI** and has not been run locally (no emulator).
+
 The `build` job still compiles and packages the instrumented tests (`:app:assembleDebugAndroidTest`, `:hilt-coroutines-runtime:assembleDebugAndroidTest`).
 
 ## 3. The sample app

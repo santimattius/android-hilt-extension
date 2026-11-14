@@ -49,7 +49,8 @@ Confirmed against Hilt 2.60.1 output.
 
 - Release classes are not instrumented. With minification off the sample's release dex still holds the unused `HiltTrace` classes.
 - The sample's `minified` build type (debug-like, instrumented, `isMinifyEnabled = true`) keeps the instrumentation under R8 with no extra keep rules: `./gradlew :app:verifyMinifiedTracing` finds the `hilt.inject`/`hilt.create` categories and the slice names (activity, fragment, view, service, ViewModel) in its dex. R8 inlines `HiltTrace` into the call sites and removes the class, so a keep rule for it is not needed. Without a tracing driver (`tracing-wire`) on that variant R8 dropped the call sites, so a minified build that should record needs the driver. Evidence: `verifyMinifiedTracing`, run once on the sample.
-- **Not verified:** that the minified APK records slices at runtime (the instrumented tests run against debug only), and any minified release build; the sample's release stays `isMinifyEnabled = false` and uninstrumented, and `verifyMinifiedTracing` does not touch it.
+- The instrumented tests can also target the minified build type (`-PtestBuildType=minified`, task `:instrumentedTestsMinifiedCi`, CI job `instrumented-minified`), with test keep rules in `app/proguard-test-rules.pro` that apply only to that run. Locally verified: the minified androidTest APK assembles (R8 over the app and over the tests) and the kept classes and the Hilt `component` field are present in the minified dex. **Pending CI:** the on-device run of those tests against the minified APK has not been observed (no emulator locally), so that the minified APK records slices at runtime is not yet shown.
+- **Not verified:** any minified release build; the sample's release stays `isMinifyEnabled = false` and uninstrumented, and `verifyMinifiedTracing` does not touch it.
 
 ## Publishing state
 
