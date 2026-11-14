@@ -46,7 +46,7 @@ What the app suite covers:
 ./gradlew instrumentedTestsCi
 ```
 
-Boots the managed device `ci` (Pixel 6, API 34, `aosp-atd`, defined in `app/build.gradle.kts` and `hilt-coroutines-runtime/build.gradle.kts`) and runs both suites; the per-module tasks are `:app:ciDebugAndroidTest` and `:hilt-coroutines-runtime:ciDebugAndroidTest`. The first run downloads the system image. It needs hardware virtualization (KVM on Linux). The `instrumented` job in `.github/workflows/ci.yml` runs this task. Status: the task graph resolves (`--dry-run`); the emulator run itself has not been executed from this repository yet, so no pass is claimed.
+Boots the managed device `ci` (Pixel 6, API 34, `aosp-atd`, defined in `app/build.gradle.kts` and `hilt-coroutines-runtime/build.gradle.kts`) and runs both suites; the per-module tasks are `:app:ciDebugAndroidTest` and `:hilt-coroutines-runtime:ciDebugAndroidTest`. The first run downloads the system image. It needs hardware virtualization (KVM on Linux). The `instrumented` job in `.github/workflows/ci.yml` runs this task. Status: the first CI run on PR #56 passed (34 tests, 0 failures, 0 skipped: `app` 30, `hilt-coroutines-runtime` 4). It has not been run locally, where no emulator was available.
 
 The `build` job still compiles and packages the instrumented tests (`:app:assembleDebugAndroidTest`, `:hilt-coroutines-runtime:assembleDebugAndroidTest`).
 
