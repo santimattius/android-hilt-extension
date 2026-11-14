@@ -47,7 +47,9 @@ class RealHiltLibraryTest {
     fun `a real Hilt library module is instrumented in the app debug build only`() {
         val output = build()
 
-        val catalogue = projectDir.root.resolve("lib/build/generated/ksp/debug/resources/META-INF/hilt-trace/_lib.json")
+        // The library catalogue is wired lazily: AGP must not report a classpath resolved while configuring.
+        assertTrue(output, "resolved during configuration time" !in output)
+        val catalogue =projectDir.root.resolve("lib/build/generated/ksp/debug/resources/META-INF/hilt-trace/_lib.json")
         assertTrue(output, catalogue.isFile)
         val json = catalogue.readText()
         assertTrue(json, "\"fixture.lib.LibEntryPoint\"" in json && "\"provideLibService\"" in json)
