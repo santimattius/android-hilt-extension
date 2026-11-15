@@ -41,7 +41,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Opt-in only (-PminifyRelease=true, see :app:verifyMinifiedReleaseUntraced); the default release
+            // stays unminified and uninstrumented.
+            isMinifyEnabled = providers.gradleProperty("minifyRelease").orNull == "true"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
