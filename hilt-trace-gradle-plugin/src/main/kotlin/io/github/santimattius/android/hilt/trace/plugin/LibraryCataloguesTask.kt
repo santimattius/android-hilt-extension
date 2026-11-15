@@ -41,6 +41,10 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
     @get:Internal
     public abstract val buildDirs: MapProperty<String, Directory>
 
+    /** Root directory of every included build, by build path. */
+    @get:Internal
+    public abstract val includedBuilds: MapProperty<String, Directory>
+
     /** The KSP task names of every project of this build, by project path (empty when KSP is not applied). */
     @get:Internal
     public abstract val kspTasks: MapProperty<String, List<String>>
@@ -57,7 +61,14 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
         for (artifact in artifacts.get()) {
             val id = artifact.id.componentIdentifier as? ProjectComponentIdentifier ?: continue
             val path = id.projectPath
-            val buildDir = buildDirs.get()[path]?.asFile ?: continue
+            // A project of an included build is located by convention: its build's directory plus its path
+            // (default `build` directory). It is not known to this build, so its KSP tasks are not checked.
+            val included = includedBuilds.get()[id.build.buildPath]?.asFile
+            val buildDir = if (included != null) {
+                included.resolve(path.trim(':').replace(':', '/')).resolve("build")
+            } else {
+                buildDirs.get()[path]?.asFile ?: continue
+            }
             val libraryVariant = libraryVariant(artifact.variant.displayName) ?: continue
             val ksp = kspTasks.get()[path].orEmpty()
             if (ksp.isNotEmpty() && kspTaskName(libraryVariant) !in ksp) {

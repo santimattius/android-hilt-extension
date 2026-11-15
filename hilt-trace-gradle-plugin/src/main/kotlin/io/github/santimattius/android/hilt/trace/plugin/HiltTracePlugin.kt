@@ -99,6 +99,9 @@ public class HiltTracePlugin : Plugin<Project> {
             task.artifacts.set(view.artifacts.resolvedArtifacts.map { it.toList() })
             task.libraryClasses.from(view.files)
             task.outputDir.set(project.layout.buildDirectory.dir("intermediates/hilt-trace/libraries/${variant.name}"))
+            for (build in project.gradle.includedBuilds) {
+                task.includedBuilds.put(":${build.name}", project.layout.projectDirectory.dir(build.projectDir.absolutePath))
+            }
             for (other in project.rootProject.allprojects) {
                 task.buildDirs.put(other.path, other.layout.buildDirectory)
                 task.kspTasks.put(other.path, other.provider { other.tasks.names.filter { it.startsWith("ksp") && it.endsWith("Kotlin") } })
