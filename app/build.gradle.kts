@@ -118,6 +118,9 @@ ksp {
 hiltTrace {
     // The default is debug and benchmark; the minified variant is added so R8 runs over instrumented code.
     variants.set(listOf("debug", "benchmark", "minified"))
+    // Opt-out for A/B measurements (docs/BENCHMARK.md, app start): -PhiltTraceEnabled=false builds the same
+    // code and build types without instrumentation. The default stays on.
+    enabled.set(providers.gradleProperty("hiltTraceEnabled").map { it != "false" }.orElse(true))
 }
 
 // Proof that tracing survives R8: assembles the minified variant and checks its dex. See docs/VERIFY.md.
