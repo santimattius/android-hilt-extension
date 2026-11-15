@@ -67,7 +67,9 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
         val warned = mutableSetOf<String>()
         val owners = mutableMapOf<String, String>()
         val collided = mutableSetOf<String>()
-        for (artifact in artifacts.get()) {
+        // Stable order: the library that sorts first keeps the plain catalogue file name on a collision.
+        val sorted = artifacts.get().sortedBy { (it.id.componentIdentifier as? ProjectComponentIdentifier)?.let { id -> libraryName(id.build.buildPath, id.projectPath) }.orEmpty() }
+        for (artifact in sorted) {
             val id = artifact.id.componentIdentifier as? ProjectComponentIdentifier ?: continue
             val path = id.projectPath
             val buildPath = id.build.buildPath
@@ -102,7 +104,9 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
                 }
                 continue
             }
-            val ksp = kspTasks.get()[path].orEmpty()
+            // The KSP tasks are known for this build's projects only: an included build's project with the same
+            // path as one here must not be judged by that project's tasks.
+            val ksp = if (buildPath == currentBuildPath.get()) kspTasks.get()[path].orEmpty() else emptyList()
             if (ksp.isNotEmpty() && kspTaskName(libraryVariant) !in ksp) {
                 if (warned.add(path)) {
                     logger.warn(

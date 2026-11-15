@@ -32,7 +32,7 @@ class CatalogueCollisionTest {
         assertTrue("libb catalogue lost", "fixture.b.BService" in dex && "fixture.b.BServiceModule_ProvideFactory" !in dex)
         val warnings = output.lines().filter { it.startsWith("Hilt Trace:") && "same catalogue file" in it }
         assertEquals(output, 1, warnings.size)
-        assertTrue(output, ":liba" in warnings.single() && ":libb" in warnings.single())
+        assertTrue(output, "libraries :liba and :libb " in warnings.single())
     }
 
     private fun build(): String {
