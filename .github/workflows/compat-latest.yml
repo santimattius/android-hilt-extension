@@ -1,0 +1,59 @@
+# Latest-Hilt watch: once a week, builds the throwaway consumer (compat/consumer) against the latest
+# STABLE Hilt published on Maven Central, on the same toolchain as the newest compat.yml matrix entry.
+# A red run means a new Hilt release needs a look (the plugin rewrites Hilt-generated classes);
+# it opens no issue and no PR. Add the version to the compat.yml matrix and docs/SETUP.md when it passes.
+
+name: Compatibility (latest Hilt)
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  latest-hilt:
+    name: Consumer against the latest stable Hilt
+    runs-on: ubuntu-latest
+    env:
+      # Keep in sync with the newest non-probe entry of the compat.yml matrix.
+      COMPAT_AGP: "9.1.1"
+      COMPAT_KOTLIN: "2.2.21"
+      COMPAT_KSP: "2.3.13"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve the latest stable Hilt version
+        run: |
+          metadata=$(curl -fsS --retry 3 --max-time 30 \
+            https://repo1.maven.org/maven2/com/google/dagger/hilt-android/maven-metadata.xml) \
+            || { echo "::error::could not fetch the Hilt maven-metadata.xml"; exit 1; }
+          latest=$(printf '%s\n' "$metadata" \
+            | sed -n 's|.*<version>\(.*\)</version>.*|\1|p' \
+            | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)
+          if [ -z "$latest" ]; then
+            echo "::error::no stable Hilt version found in the metadata"; exit 1
+          fi
+          echo "Latest stable Hilt: $latest"
+          echo "HILT_VERSION=$latest" >> "$GITHUB_ENV"
+
+      - name: Set up JDKs
+        uses: actions/setup-java@v6
+        with:
+          distribution: "temurin"
+          java-version: |
+            21
+            25
+          cache: "gradle"
+
+      - name: Grant execute permission for scripts
+        run: chmod +x gradlew compat/run.sh compat/check-dex.sh
+
+      - name: Build consumer against locally published artifacts
+        run: |
+          export COMPAT_JAVA_HOME="$JAVA_HOME_21_X64"
+          compat/run.sh "$COMPAT_AGP" "$COMPAT_KOTLIN" "$HILT_VERSION" "$COMPAT_KSP" 24

@@ -40,6 +40,13 @@ jobs:
       - name: Test the instrumented-results guard
         run: scripts/test-assert-instrumented-results.sh
 
+      # The supported toolchains in docs/SETUP.md must equal the compat.yml matrix.
+      - name: Test the supported-versions check
+        run: scripts/test-check-supported-versions.sh
+
+      - name: Check that the docs list the compat matrix
+        run: scripts/check-supported-versions.sh
+
       # The minified instrumented APK (R8 over app and tests) is only assembled here; it runs in the
       # instrumented-minified job.
       - name: Assemble the minified instrumented tests
