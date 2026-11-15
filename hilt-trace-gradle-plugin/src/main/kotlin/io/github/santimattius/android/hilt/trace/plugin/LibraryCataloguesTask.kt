@@ -1,5 +1,6 @@
 package io.github.santimattius.android.hilt.trace.plugin
 
+import io.github.santimattius.android.hilt.trace.compiler.catalogue.CATALOGUE_DIRECTORY
 import org.gradle.api.DefaultTask
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedArtifactResult
@@ -16,6 +17,7 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.UntrackedTask
+import java.io.File
 
 /**
  * Collects the KSP catalogue of every Android library the app variant resolved to, from the library
@@ -63,6 +65,8 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
         out.deleteRecursively()
         out.mkdirs()
         val warned = mutableSetOf<String>()
+        val owners = mutableMapOf<String, String>()
+        val collided = mutableSetOf<String>()
         for (artifact in artifacts.get()) {
             val id = artifact.id.componentIdentifier as? ProjectComponentIdentifier ?: continue
             val path = id.projectPath
@@ -98,7 +102,40 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
                 continue
             }
             val resources = buildDir.resolve("generated/ksp/$libraryVariant/resources")
-            if (resources.isDirectory) resources.copyRecursively(out, overwrite = true)
+            if (resources.isDirectory) copyResources(resources, out, name, owners, collided)
+        }
+    }
+
+    /**
+     * Copies [resources] into [out]. Catalogue files are named after `hiltTrace.module`, so two libraries that
+     * declare the same module id write the same file name: the later one is copied under a distinct name (the
+     * loader reads every `*.json`) and reported once, instead of overwriting the first.
+     */
+    private fun copyResources(
+        resources: File,
+        out: File,
+        library: String,
+        owners: MutableMap<String, String>,
+        collided: MutableSet<String>,
+    ) {
+        for (file in resources.walkTopDown().filter { it.isFile }) {
+            val relative = file.relativeTo(resources).invariantSeparatorsPath
+            var target = out.resolve(relative)
+            if (target.exists() && relative.startsWith("$CATALOGUE_DIRECTORY/")) {
+                if (target.readBytes().contentEquals(file.readBytes())) continue
+                if (collided.add(relative)) {
+                    logger.warn(
+                        "Hilt Trace: libraries ${owners.getValue(relative)} and $library write the same catalogue file " +
+                            "${file.name} (the same hiltTrace.module, or ids that differ only by ':' versus '_'); both are read.",
+                    )
+                }
+                var n = 2
+                while (target.resolveSibling("${file.nameWithoutExtension}~$n.${file.extension}").also { target = it }.exists()) n++
+            } else {
+                owners.putIfAbsent(relative, library)
+            }
+            target.parentFile.mkdirs()
+            file.copyTo(target, overwrite = true)
         }
     }
 
