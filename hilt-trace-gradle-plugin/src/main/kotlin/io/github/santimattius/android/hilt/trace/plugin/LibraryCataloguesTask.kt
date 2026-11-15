@@ -67,7 +67,9 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
         val warned = mutableSetOf<String>()
         val owners = mutableMapOf<String, String>()
         val collided = mutableSetOf<String>()
-        for (artifact in artifacts.get()) {
+        // Stable order: the library that sorts first keeps the plain catalogue file name on a collision.
+        val sorted = artifacts.get().sortedBy { (it.id.componentIdentifier as? ProjectComponentIdentifier)?.let { id -> libraryName(id.build.buildPath, id.projectPath) }.orEmpty() }
+        for (artifact in sorted) {
             val id = artifact.id.componentIdentifier as? ProjectComponentIdentifier ?: continue
             val path = id.projectPath
             val buildPath = id.build.buildPath
@@ -90,8 +92,21 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
                     continue
                 }
             }
-            val libraryVariant = libraryVariant(artifact.variant.displayName) ?: continue
-            val ksp = kspTasks.get()[path].orEmpty()
+            val libraryVariant = libraryVariant(artifact.variant.displayName)
+            if (libraryVariant == null) {
+                // A JVM project (`project ':x'`, or the bare `apiElements`/`runtimeElements`) is not an Android library.
+                if (!isAndroidLibraryElements(artifact.variant.displayName)) continue
+                if (warned.add(name)) {
+                    logger.warn(
+                        "Hilt Trace: cannot tell which variant of library $name Gradle selected from '${artifact.variant.displayName}', " +
+                            "so its catalogue is not read and its slices use bytecode names.",
+                    )
+                }
+                continue
+            }
+            // The KSP tasks are known for this build's projects only: an included build's project with the same
+            // path as one here must not be judged by that project's tasks.
+            val ksp = if (buildPath == currentBuildPath.get()) kspTasks.get()[path].orEmpty() else emptyList()
             if (ksp.isNotEmpty() && kspTaskName(libraryVariant) !in ksp) {
                 if (warned.add(path)) {
                     logger.warn(
@@ -146,6 +161,12 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
          */
         fun libraryVariant(displayName: String): String? =
             Regex("^([A-Za-z0-9]+?)(?:Api|Runtime)Elements").find(displayName.substringAfterLast(':'))?.groupValues?.get(1)
+
+        /** True for a `configuration ':lib:...'` display name that is not a JVM library's bare elements. */
+        fun isAndroidLibraryElements(displayName: String): Boolean =
+            displayName.startsWith("configuration ") && displayName.substringAfterLast(':').trimEnd('\'') !in JVM_ELEMENTS
+
+        private val JVM_ELEMENTS = setOf("apiElements", "runtimeElements")
 
         fun libraryName(buildPath: String, projectPath: String) =
             if (buildPath == ":") projectPath else if (projectPath == ":") buildPath else buildPath + projectPath
