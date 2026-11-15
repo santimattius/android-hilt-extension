@@ -41,7 +41,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Opt-in only (-PminifyRelease=true, see :app:verifyMinifiedReleaseUntraced); the default release
+            // stays unminified and uninstrumented.
+            isMinifyEnabled = providers.gradleProperty("minifyRelease").orNull == "true"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -140,6 +142,28 @@ tasks.register<Exec>("verifyMinifiedTracing") {
     inputs.file(script)
     // Locals only: a lambda that touched a script-level val would capture the build script and break the
     // configuration cache.
+    argumentProviders += CommandLineArgumentProvider {
+        listOf(script.asFile.absolutePath, apk.get().asFile.absolutePath, mapping.get().asFile.absolutePath, dexdump.get())
+    }
+}
+
+// Proof that an R8-minified release stays uninstrumented: assembles release with -PminifyRelease=true and
+// checks its dex. Fails fast without the property, so it cannot pass on the default unminified release.
+val minifyReleaseRequested = providers.gradleProperty("minifyRelease").orNull == "true"
+tasks.register<Exec>("verifyMinifiedReleaseUntraced") {
+    group = "verification"
+    description = "Assembles release with R8 (-PminifyRelease=true) and checks its dex has no tracing."
+    if (minifyReleaseRequested) {
+        dependsOn("assembleRelease")
+    } else {
+        doFirst { throw GradleException("verifyMinifiedReleaseUntraced requires -PminifyRelease=true") }
+    }
+    executable = "bash"
+    val script = layout.projectDirectory.file("scripts/check-release-untraced.sh")
+    val apk = layout.buildDirectory.file("outputs/apk/release/app-release-unsigned.apk")
+    val mapping = layout.buildDirectory.file("outputs/mapping/release/mapping.txt")
+    val dexdump = dexdumpPath
+    inputs.file(script)
     argumentProviders += CommandLineArgumentProvider {
         listOf(script.asFile.absolutePath, apk.get().asFile.absolutePath, mapping.get().asFile.absolutePath, dexdump.get())
     }

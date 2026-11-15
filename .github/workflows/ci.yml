@@ -45,6 +45,11 @@ jobs:
       - name: Assemble the minified instrumented tests
         run: ./gradlew -PtestBuildType=minified :app:assembleMinifiedAndroidTest --configuration-cache
 
+      # Device-free: the opt-in R8-minified release must carry no HiltTrace call site and no
+      # androidx/tracing reference, and the R8 mapping must exist. The default release is unchanged.
+      - name: Check that the minified release stays uninstrumented
+        run: ./gradlew -PminifyRelease=true :app:verifyMinifiedReleaseUntraced --configuration-cache
+
   # Runs the instrumented tests (app and hilt-coroutines-runtime) on a Gradle Managed Device: AGP
   # downloads the aosp-atd API 34 image and boots it headless. Local equivalent: ./gradlew instrumentedTestsCi
   instrumented:

@@ -128,6 +128,12 @@ Dry-runs `:app:generateDebugComposePreviewRunfiles` with the workaround in place
 
 Assembles the sample's `minified` build type (debug-like, instrumented through `hiltTrace { variants }`, `isMinifyEnabled = true`) and runs `app/scripts/check-minified-tracing.sh` on its APK. It needs `dexdump` from the Android SDK build-tools and fails when the R8 mapping is missing or when the dex lacks the `hilt.inject`/`hilt.create` categories or the slice names of the sample's entry points. It proves the instrumentation is still in the minified dex, not that the APK records at runtime. Release is not part of this check and stays unminified and uninstrumented.
 
+```bash
+./gradlew -PminifyRelease=true :app:verifyMinifiedReleaseUntraced
+```
+
+The opposite proof: assembles `release` with R8 switched on (`-PminifyRelease=true`; the default release stays `isMinifyEnabled = false` and uninstrumented) and runs `app/scripts/check-release-untraced.sh`. It needs `dexdump` and fails when the R8 mapping is missing, or when the dex holds a `HiltTrace;.begin` call site or an `androidx/tracing` reference. Without the property the task fails fast with a message, so it cannot pass on an unminified build. It runs in the `build` job of `.github/workflows/ci.yml`; status: added, first CI run pending. Locally it was red on the instrumented `minified` APK and green on the minified release APK. It checks the dex only; the manual device run is recorded in [Limitations](LIMITATIONS.md#release-and-r8).
+
 ## 6. Troubleshooting
 
 | Symptom | Likely cause | Check or fix |
