@@ -32,7 +32,7 @@ How it was run: an emulator was connected as well, so the APK from `:benchmark-m
 
 - It is a synthetic call path with the shape of the generated code and a few instructions of work, not the generated Dagger code, and no tracing driver is installed.
 - One device, one manual session; nothing from CI (the emulator smoke run is not a measurement).
-- It says nothing about the total effect on an app start. Issue #72 tracks recording this in the docs and measuring a real start.
+- It says nothing by itself about the total effect on an app start; that is measured separately in the "App start" section below.
 
 ## Run
 
@@ -56,7 +56,18 @@ The benchmark runs against the release build type of the module (`testBuildType 
 
 `app/scripts/measure-startup.sh` measures the cold start (`am start -W`, `TotalTime`) of the sample on one device with and without the Hilt Trace instrumentation. Both builds are the `minified` build type (R8, non-debuggable, debug keystore), the same code, differing only in instrumentation: `-PhiltTraceEnabled=false` turns the plugin off (default is on). The `minified` type is used because it is the only non-debuggable build that carries the instrumentation (`hiltTrace { variants }`).
 
-**This repository states no app start figure yet.** The maintainer records one after running the script on a physical device.
+### Measured (by hand, 2026-11-15, not CI)
+
+One physical moto g05, Android 15, charging, both APKs `speed`-compiled, cold starts with `am start -W`, 6 blocks of 5 starts per variant with the first of each block discarded (24 measured per variant), variants interleaved:
+
+| Build | n | Median `TotalTime` | p90 | Min | Max | IQR |
+|---|---|---|---|---|---|---|
+| `minified`, instrumented | 24 | 407.5 ms | 416 ms | 384 ms | 423 ms | 12 ms |
+| `minified`, `-PhiltTraceEnabled=false` | 24 | 405.5 ms | 415 ms | 387 ms | 450 ms | 13.25 ms |
+
+The medians differ by 2 ms (the instrumented build is the slower one) while the IQR of each variant is about 12 to 13 ms, so the difference is **within the noise of this run: no effect on app start can be claimed or ruled out at this resolution.** For scale, the per-call cost measured above is about 20 ns, so even a few hundred traced creations would add microseconds. The instrumentation does add code: the `classes.dex` of the instrumented build is 3,800 bytes larger (1,757,796 against 1,753,996 bytes; the APK file is the same size, 1,550,792 bytes, in both builds).
+
+**Limits:** one device and one session; a 2 ms difference cannot be told from noise with 24 starts; it measures `am start -W` to the first activity, not the time to the first rendered frame or to a fully populated screen; the sample creates few bindings at start; no tracing driver is recording, which is the case this measurement is about.
 
 Build both APKs (they share one output path, so copy the first before the second build):
 
