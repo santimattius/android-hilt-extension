@@ -1,0 +1,49 @@
+name: Coverage or observability gap
+description: Something Hilt Trace or the coroutine helpers do not cover or measure yet.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: missing
+    attributes:
+      label: What is missing
+      description: The binding, hook, behavior or measurement that is not covered today.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Where this is documented or measured (a row of docs/LIMITATIONS.md, a test, a PR, a command and its output).
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Gradle plugin (bytecode instrumentation)
+        - Runtime (HiltTrace)
+        - Coroutine helpers
+        - Build, CI and compatibility
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Optional. A sketch of how it could be done and what it would cost.
+  - type: textarea
+    id: done
+    attributes:
+      label: How we would know it is done
+      description: The check, test or measurement that would prove it.
+    validations:
+      required: true
+  - type: checkboxes
+    id: duplicates
+    attributes:
+      label: Duplicates
+      options:
+        - label: Open and closed issues were searched for a duplicate.
+          required: true
