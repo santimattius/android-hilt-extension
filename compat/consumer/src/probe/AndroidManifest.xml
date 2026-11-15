@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Evidence-only API 23 probe (compatOverrideLibrary=true): the minSdk check is overridden for the two
+     hilt-trace libraries in this throwaway consumer only. Their published minSdk stays 24. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-sdk tools:overrideLibrary="io.github.santimattius.android.hilt.trace,io.github.santimattius.android.hilt.coroutines" />
+</manifest>

@@ -10,6 +10,11 @@
 #   COMPAT_EXPECT_MIN_SDK_REJECTION  set to 1 to expect the manifest merger to reject the consumer's
 #                        minSdk because the published libraries declare a higher one (minSdk probe);
 #                        the run then passes only if that exact rejection happens.
+#   COMPAT_API23_PROBE   evidence-only API 23 probe (use with consumer-minSdk 23); the published minSdk stays 24.
+#                        "build": the minSdk check is overridden only in the consumer (tools:overrideLibrary,
+#                        compat/consumer/src/probe) and the debug app and its smoke test APK are assembled.
+#                        "run": the same, then the smoke test runs on the connected device/emulator, which
+#                        must be API 23 (expectedSdk=23); the compat.yml job api23-probe provides one.
 set -euo pipefail
 
 if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
@@ -55,6 +60,21 @@ if [ "${COMPAT_EXPECT_MIN_SDK_REJECTION:-0}" = "1" ]; then
   tail -n 30 "$LOG" >&2
   exit 1
 fi
+
+case "${COMPAT_API23_PROBE:-}" in
+  build)
+    "$GRADLEW" "${CONSUMER_ARGS[@]}" -PcompatOverrideLibrary=true clean assembleDebug assembleDebugAndroidTest
+    echo "API 23 probe assembled (minSdk $MIN_SDK, minSdk check overridden in the consumer only); not run on a device"
+    exit 0
+    ;;
+  run)
+    "$GRADLEW" "${CONSUMER_ARGS[@]}" -PcompatOverrideLibrary=true \
+      -Pandroid.testInstrumentationRunnerArguments.expectedSdk=23 clean connectedDebugAndroidTest
+    exit 0
+    ;;
+  "") ;;
+  *) echo "COMPAT_API23_PROBE must be 'build' or 'run'" >&2; exit 2 ;;
+esac
 
 "$GRADLEW" "${CONSUMER_ARGS[@]}" clean assembleDebug assembleRelease
 
