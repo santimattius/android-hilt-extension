@@ -124,6 +124,19 @@ class TraceCaptureTest {
     }
 
     /**
+     * Says what the capture held when the wait ran out, so a rare timeout names its cause instead of only
+     * "the expected slices did not appear": few slices point at a demo that never ran, an unbalanced count
+     * at a section left open, and a satisfied predicate with a short quiet period at a capture still moving.
+     */
+    private fun timeoutMessage(slices: List<Slice>, balanced: Boolean, predicate: Boolean, quietMillis: Long): String {
+        val begins = slices.count { it.type == BEGIN }
+        val ends = slices.count { it.type == END }
+        return "the expected slices did not appear within the timeout: ${slices.size} slices ($begins begin, $ends end, " +
+            "balanced=$balanced), expected-slices predicate=$predicate, quiet for $quietMillis ms of the required $QUIET_MILLIS; " +
+            "last begins: ${slices.filter { it.type == BEGIN }.takeLast(MAX_LISTED).joinToString { "${it.category} ${it.name}" }}"
+    }
+
+    /**
      * Demo actions that run asynchronously (a recomposition, a service, a coroutine) get a bounded wait.
      * The capture counts as settled when the expected slices are there, every begin has its end, and
      * nothing new arrived for [QUIET_MILLIS]: a coroutine closes and reopens its section at each
@@ -143,7 +156,7 @@ class TraceCaptureTest {
                 quietSince = now
             }
             if (balanced && settled(slices) && now - quietSince >= QUIET_MILLIS * 1_000_000) return
-            check(now < deadline) { "the expected slices did not appear within the timeout" }
+            check(now < deadline) { timeoutMessage(slices, balanced, settled(slices), (now - quietSince) / 1_000_000) }
             Thread.sleep(POLL_MILLIS)
         }
     }
@@ -356,6 +369,7 @@ class TraceCaptureTest {
         const val SETTLE_TIMEOUT_NANOS = 10_000_000_000L
         const val POLL_MILLIS = 50L
         const val QUIET_MILLIS = 400L
+        const val MAX_LISTED = 12
         const val COROUTINE = "sample.coroutine"
         const val DEMO_PACKAGE = "io.github.santimattius.android.sample.demo"
         const val SCRATCH_VIEW_MODEL = "io.github.santimattius.android.sample.android.ScratchViewModel"
