@@ -31,7 +31,25 @@ class MixedLibrariesTest {
         assertTrue(output, "Hilt Trace" !in output)
     }
 
-    private fun build(): String {
+    @Test
+    fun `the mixed libraries are named again when the configuration cache is reused`() {
+        val first = build("--configuration-cache")
+        // The dex is rebuilt on the reused configuration, so the names come from this run.
+        projectDir.root.resolve("build/intermediates/dex").deleteRecursively()
+        val second = run("--configuration-cache")
+
+        assertTrue(first, "Configuration cache entry stored" in first)
+        assertTrue(second, "Reusing configuration cache" in second)
+        val dex = projectDir.root.resolve("build/intermediates/dex/freeDebug").walkTopDown()
+            .filter { it.isFile && it.extension == "dex" }.joinToString("") { String(it.readBytes(), Charsets.ISO_8859_1) }
+        assertTrue(second, "fixture.a.AService" in dex && "fixture.b.BService" in dex)
+        assertTrue(second, "Hilt Trace" !in second && "resolved during configuration time" !in second)
+    }
+
+    private fun run(vararg extra: String): String = GradleRunner.create().withProjectDir(projectDir.root).withPluginClasspath()
+        .withArguments(":assembleFreeDebug", "--stacktrace", *extra).build().output
+
+    private fun build(vararg extra: String): String {
         val root = projectDir.root
         val compilerJar = checkNotNull(System.getProperty("hiltTrace.compilerJar")) { "hiltTrace.compilerJar is not set" }.replace("\\", "/")
         val repos = "dependencyResolutionManagement { repositories { google(); mavenCentral() } }"
@@ -79,8 +97,7 @@ class MixedLibrariesTest {
         library(root.resolve("incl"), "b", "BService", compilerJar)
         root.resolve("incl/settings.gradle.kts").writeText("$repos\nrootProject.name = \"incl\"")
         root.resolve("incl/gradle.properties").writeText("android.useAndroidX=true\n")
-        return GradleRunner.create().withProjectDir(root).withPluginClasspath()
-            .withArguments(":assembleFreeDebug", "--stacktrace").build().output
+        return run(*extra)
     }
 
     /**
