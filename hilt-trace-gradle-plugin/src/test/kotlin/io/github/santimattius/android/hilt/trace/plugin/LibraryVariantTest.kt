@@ -8,14 +8,17 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * An Android library project is read from `generated/ksp/<app variant>/resources`, so the library must
- * have a KSP variant with the app variant's name.
+ * An Android library project is read from `generated/ksp/<library variant>/resources`, where the library
+ * variant is the one Gradle selected for the app variant.
  *
  * What it proves: when the app has a product flavor the library lacks (`freeDebug` against the
- * library's `debug`), the build still passes (fail open) and the plugin logs one warning that names
- * the library and the variant. A library that has the variant, or no KSP at all, logs nothing.
+ * library's `debug`), the selected `debug` is read and nothing is logged (the catalogue content is
+ * asserted in `RealHiltLibraryTest`). A library with KSP-named tasks but none for the selected variant is
+ * skipped with one warning naming the library and the variant, and the build passes. A library without
+ * KSP logs nothing.
  *
- * What it does not prove: that the catalogue is found for such a library; it is not (documented limit).
+ * What it does not prove: the missing-variant case uses a hand-registered KSP-named task, because AGP with
+ * the KSP plugin creates a KSP task for every variant, so it is a defensive path.
  */
 class LibraryVariantTest {
 
@@ -23,12 +26,20 @@ class LibraryVariantTest {
     val projectDir = TemporaryFolder()
 
     @Test
-    fun `a library without the app variant is skipped with one warning and the build passes`() {
+    fun `a library without the app-only flavor is read through the variant Gradle selected and logs no warning`() {
         val output = build(appFlavors = true, libraryKsp = true)
+
+        assertTrue(output, "no KSP variant" !in output)
+        assertTrue(output, "resolved during configuration time" !in output)
+    }
+
+    @Test
+    fun `a library with KSP tasks but none for the selected variant is skipped with one warning and the build passes`() {
+        val output = build(appFlavors = true, libraryKsp = false, kspLookalike = true)
 
         val warnings = output.lines().filter { it.startsWith("Hilt Trace:") && "no KSP variant" in it }
         assertEquals(output, 1, warnings.size)
-        assertTrue(output, ":lib" in warnings.single() && "freeDebug" in warnings.single())
+        assertTrue(output, ":lib" in warnings.single() && "'debug'" in warnings.single())
     }
 
     @Test
@@ -45,13 +56,21 @@ class LibraryVariantTest {
         assertTrue(output, "no KSP variant" !in output)
     }
 
-    private fun build(appFlavors: Boolean, libraryKsp: Boolean): String {
+    @Test
+    fun `a JVM library project dependency is skipped silently`() {
+        val output = build(appFlavors = true, libraryKsp = true, jvmLibrary = true)
+
+        assertTrue(output, "Hilt Trace" !in output)
+    }
+
+    private fun build(appFlavors: Boolean, libraryKsp: Boolean, kspLookalike: Boolean = false, jvmLibrary: Boolean = false): String {
         val root = projectDir.root
         root.resolve("settings.gradle.kts").writeText(
             """
             dependencyResolutionManagement { repositories { google(); mavenCentral() } }
             rootProject.name = "fixture"
             include(":lib")
+            ${if (jvmLibrary) "include(\":jvmlib\")" else ""}
             """.trimIndent(),
         )
         root.resolve("gradle.properties").writeText("android.useAndroidX=true\n")
@@ -77,7 +96,7 @@ class LibraryVariantTest {
                 $flavors
             }
             hiltTrace { variants.set(listOf("debug", "freeDebug")) }
-            dependencies { implementation(project(":lib")) }
+            dependencies { implementation(project(":lib")); ${if (jvmLibrary) "implementation(project(\":jvmlib\"))" else ""} }
             configurations.all { exclude(group = "io.github.santimattius.android") }
             """.trimIndent(),
         )
@@ -86,6 +105,8 @@ class LibraryVariantTest {
             "package io.github.santimattius.android.hilt.trace; public final class HiltTrace { " +
                 "public static Object begin(String category, String name) { return name; } public static void end(Object token) {} }",
         )
+        // A KSP-named task that is not for the selected variant: AGP with KSP creates one per variant.
+        val lookalike = if (kspLookalike) """tasks.register("kspLegacyKotlin")""" else ""
         val ksp = if (libraryKsp) """id("com.google.devtools.ksp")""" else ""
         root.resolve("lib/build.gradle.kts").apply { parentFile.mkdirs() }.writeText(
             """
@@ -94,10 +115,16 @@ class LibraryVariantTest {
                 $ksp
             }
             android { namespace = "fixture.lib"; compileSdk = 36; defaultConfig { minSdk = 24 } }
+            $lookalike
             """.trimIndent(),
         )
         root.resolve("lib/src/main/AndroidManifest.xml").apply { parentFile.mkdirs() }.writeText("<manifest />")
         root.resolve("lib/src/main/kotlin/fixture/lib/Lib.kt").apply { parentFile.mkdirs() }.writeText("package fixture.lib\n\nclass Lib\n")
+        if (jvmLibrary) {
+            root.resolve("jvmlib/build.gradle.kts").apply { parentFile.mkdirs() }.writeText("plugins { `java-library` }")
+            root.resolve("jvmlib/src/main/java/fixture/jvm/Jvm.java").apply { parentFile.mkdirs() }
+                .writeText("package fixture.jvm; public class Jvm {}")
+        }
         val task = if (appFlavors) ":assembleFreeDebug" else ":assembleDebug"
         return GradleRunner.create().withProjectDir(root).withPluginClasspath()
             .withArguments(task, "--stacktrace").build().output
