@@ -4,6 +4,7 @@ import org.objectweb.asm.Opcodes.ACONST_NULL
 import org.objectweb.asm.Opcodes.ALOAD
 import org.objectweb.asm.Opcodes.ASTORE
 import org.objectweb.asm.Opcodes.ATHROW
+import org.objectweb.asm.Opcodes.CHECKCAST
 import org.objectweb.asm.Opcodes.INVOKESTATIC
 import org.objectweb.asm.Opcodes.NEW
 import org.objectweb.asm.tree.AbstractInsnNode
@@ -73,16 +74,27 @@ internal fun endSpan(token: Int) = InsnList().apply {
 }
 
 /**
- * Slice name derived from the case body alone: the first constructed class (`NEW`, which for an
- * `@AssistedFactory` is the anonymous factory) or else the class of the first static call (the
- * module factory of a `@Provides`). Dotted, as Java reports class names. `null` when the body has
- * neither.
+ * Slice name derived from the case body alone: the class of the [creationSite], that is the
+ * constructed class (`NEW`, which for an `@AssistedFactory` is the anonymous factory) or the module
+ * factory of a `@Provides` (the static call that produces the returned value, not one of its
+ * arguments). Dotted, as Java reports class names. `null` when the body has neither.
  */
 internal fun fallbackName(body: CaseBody): String? =
     creationSite(body)?.let { if (it is TypeInsnNode) it.desc else (it as MethodInsnNode).owner }?.replace('/', '.')
 
-/** The first `NEW` or `INVOKESTATIC` of the case body: the instruction that tells which binding it creates. */
-internal fun creationSite(body: CaseBody): AbstractInsnNode? =
-    generateSequence(body.label.next) { it.next }.takeWhile { it !== body.ret }.firstOrNull {
-        (it is TypeInsnNode && it.opcode == NEW) || (it is MethodInsnNode && it.opcode == INVOKESTATIC)
-    }
+/**
+ * The instruction that produces the value the case returns, which tells which binding it creates.
+ * The last real instruction before the return (ignoring casts and labels, lines and frames) decides:
+ * - `INVOKESTATIC`: that call is the creator (`Module_XFactory.provideX(arg)`); the arguments were
+ *   evaluated before it, so an earlier `NEW` or static call is not the creator;
+ * - `INVOKESPECIAL <init>`: the creator is the first `NEW` (`new Foo(arg)` pushes its own `NEW`
+ *   before evaluating any argument);
+ * - anything else: the first `NEW`, else the first `INVOKESTATIC`.
+ */
+internal fun creationSite(body: CaseBody): AbstractInsnNode? {
+    val insns = generateSequence(body.label.next) { it.next }.takeWhile { it !== body.ret }.toList()
+    val terminal = insns.lastOrNull { it.opcode >= 0 && it.opcode != CHECKCAST }
+    if (terminal is MethodInsnNode && terminal.opcode == INVOKESTATIC) return terminal
+    return insns.firstOrNull { it is TypeInsnNode && it.opcode == NEW }
+        ?: insns.firstOrNull { it is MethodInsnNode && it.opcode == INVOKESTATIC }
+}
