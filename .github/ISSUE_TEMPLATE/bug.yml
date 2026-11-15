@@ -1,0 +1,50 @@
+name: Bug
+description: Something behaves differently from what the documentation says.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: The observed behavior, with the exact error or output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What was expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The smallest steps, command or CI run that shows it, and how often it happens.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Library version, AGP, Kotlin, Hilt, Gradle, device or emulator and Android version.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Gradle plugin (bytecode instrumentation)
+        - Runtime (HiltTrace)
+        - Coroutine helpers
+        - Build, CI and compatibility
+        - Documentation
+    validations:
+      required: true
+  - type: checkboxes
+    id: duplicates
+    attributes:
+      label: Duplicates
+      options:
+        - label: Open and closed issues were searched for a duplicate.
+          required: true
