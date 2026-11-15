@@ -92,6 +92,8 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
             }
             val libraryVariant = libraryVariant(artifact.variant.displayName)
             if (libraryVariant == null) {
+                // A JVM project (`project ':x'`, or the bare `apiElements`/`runtimeElements`) is not an Android library.
+                if (!isAndroidLibraryElements(artifact.variant.displayName)) continue
                 if (warned.add(name)) {
                     logger.warn(
                         "Hilt Trace: cannot tell which variant of library $name Gradle selected from '${artifact.variant.displayName}', " +
@@ -155,6 +157,12 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
          */
         fun libraryVariant(displayName: String): String? =
             Regex("^([A-Za-z0-9]+?)(?:Api|Runtime)Elements").find(displayName.substringAfterLast(':'))?.groupValues?.get(1)
+
+        /** True for a `configuration ':lib:...'` display name that is not a JVM library's bare elements. */
+        fun isAndroidLibraryElements(displayName: String): Boolean =
+            displayName.startsWith("configuration ") && displayName.substringAfterLast(':').trimEnd('\'') !in JVM_ELEMENTS
+
+        private val JVM_ELEMENTS = setOf("apiElements", "runtimeElements")
 
         fun libraryName(buildPath: String, projectPath: String) =
             if (buildPath == ":") projectPath else if (projectPath == ":") buildPath else buildPath + projectPath

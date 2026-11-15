@@ -56,13 +56,21 @@ class LibraryVariantTest {
         assertTrue(output, "no KSP variant" !in output)
     }
 
-    private fun build(appFlavors: Boolean, libraryKsp: Boolean, kspLookalike: Boolean = false): String {
+    @Test
+    fun `a JVM library project dependency is skipped silently`() {
+        val output = build(appFlavors = true, libraryKsp = true, jvmLibrary = true)
+
+        assertTrue(output, "Hilt Trace" !in output)
+    }
+
+    private fun build(appFlavors: Boolean, libraryKsp: Boolean, kspLookalike: Boolean = false, jvmLibrary: Boolean = false): String {
         val root = projectDir.root
         root.resolve("settings.gradle.kts").writeText(
             """
             dependencyResolutionManagement { repositories { google(); mavenCentral() } }
             rootProject.name = "fixture"
             include(":lib")
+            ${if (jvmLibrary) "include(\":jvmlib\")" else ""}
             """.trimIndent(),
         )
         root.resolve("gradle.properties").writeText("android.useAndroidX=true\n")
@@ -88,7 +96,7 @@ class LibraryVariantTest {
                 $flavors
             }
             hiltTrace { variants.set(listOf("debug", "freeDebug")) }
-            dependencies { implementation(project(":lib")) }
+            dependencies { implementation(project(":lib")); ${if (jvmLibrary) "implementation(project(\":jvmlib\"))" else ""} }
             configurations.all { exclude(group = "io.github.santimattius.android") }
             """.trimIndent(),
         )
@@ -112,6 +120,11 @@ class LibraryVariantTest {
         )
         root.resolve("lib/src/main/AndroidManifest.xml").apply { parentFile.mkdirs() }.writeText("<manifest />")
         root.resolve("lib/src/main/kotlin/fixture/lib/Lib.kt").apply { parentFile.mkdirs() }.writeText("package fixture.lib\n\nclass Lib\n")
+        if (jvmLibrary) {
+            root.resolve("jvmlib/build.gradle.kts").apply { parentFile.mkdirs() }.writeText("plugins { `java-library` }")
+            root.resolve("jvmlib/src/main/java/fixture/jvm/Jvm.java").apply { parentFile.mkdirs() }
+                .writeText("package fixture.jvm; public class Jvm {}")
+        }
         val task = if (appFlavors) ":assembleFreeDebug" else ":assembleDebug"
         return GradleRunner.create().withProjectDir(root).withPluginClasspath()
             .withArguments(task, "--stacktrace").build().output
