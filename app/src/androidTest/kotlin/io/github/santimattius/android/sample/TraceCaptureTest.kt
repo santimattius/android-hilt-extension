@@ -13,6 +13,7 @@ import androidx.tracing.TraceContext
 import androidx.tracing.Tracer
 import dagger.hilt.internal.GeneratedComponentManagerHolder
 import io.github.santimattius.android.sample.demo.DemoId
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -48,7 +49,13 @@ class TraceCaptureTest {
             pooledPacketArray.recycle()
         }
 
-        override fun onDroppedTraceEvent() = Unit
+        /** Events the tracer reported as dropped; a dropped event can leave a BEGIN or an END unmatched. */
+        val dropped = AtomicInteger()
+
+        override fun onDroppedTraceEvent() {
+            dropped.incrementAndGet()
+        }
+
         override fun flush() = Unit
         override fun close() = Unit
 
@@ -133,7 +140,36 @@ class TraceCaptureTest {
         val ends = slices.count { it.type == END }
         return "the expected slices did not appear within the timeout: ${slices.size} slices ($begins begin, $ends end, " +
             "balanced=$balanced), expected-slices predicate=$predicate, quiet for $quietMillis ms of the required $QUIET_MILLIS; " +
-            "last begins: ${slices.filter { it.type == BEGIN }.takeLast(MAX_LISTED).joinToString { "${it.category} ${it.name}" }}"
+            "last begins: ${slices.filter { it.type == BEGIN }.takeLast(MAX_LISTED).joinToString { "${it.category} ${it.name}" }}; " +
+            "dropped by the tracer: ${sink.dropped.get()}; unmatched: ${unmatchedEnds(slices)}"
+    }
+
+    /**
+     * Names the END that has no BEGIN open on its own track, and the tracks that still hold an open BEGIN,
+     * so a capture that can never balance says which section is unmatched and on which thread it closed.
+     */
+    private fun unmatchedEnds(slices: List<Slice>): String {
+        val open = HashMap<Long, Int>()
+        val strays = mutableListOf<String>()
+        slices.forEachIndexed { index, slice ->
+            when (slice.type) {
+                BEGIN -> open.merge(slice.track, 1, Int::plus)
+                END -> {
+                    val depth = open.getOrDefault(slice.track, 0)
+                    if (depth == 0) {
+                        val before = slices.subList(maxOf(0, index - STRAY_CONTEXT), index)
+                            .joinToString { "${if (it.type == BEGIN) "B" else "E"}:${it.category} ${it.name}@${it.track}" }
+                        val after = slices.subList(index + 1, minOf(slices.size, index + 1 + STRAY_CONTEXT))
+                            .joinToString { "${if (it.type == BEGIN) "B" else "E"}:${it.category} ${it.name}@${it.track}" }
+                        strays += "END #$index on track ${slice.track} with nothing open there (before it: $before; after it: $after)"
+                    } else {
+                        open[slice.track] = depth - 1
+                    }
+                }
+            }
+        }
+        val stillOpen = open.filterValues { it > 0 }.entries.joinToString { "track ${it.key} x${it.value}" }
+        return "${strays.ifEmpty { listOf("no END without a BEGIN on its own track") }.joinToString("; ")}; tracks with an open BEGIN: ${stillOpen.ifEmpty { "none" }}"
     }
 
     /**
@@ -370,6 +406,7 @@ class TraceCaptureTest {
         const val POLL_MILLIS = 50L
         const val QUIET_MILLIS = 400L
         const val MAX_LISTED = 12
+        const val STRAY_CONTEXT = 4
         const val COROUTINE = "sample.coroutine"
         const val DEMO_PACKAGE = "io.github.santimattius.android.sample.demo"
         const val SCRATCH_VIEW_MODEL = "io.github.santimattius.android.sample.android.ScratchViewModel"
