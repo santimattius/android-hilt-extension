@@ -75,13 +75,27 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
             val buildPath = id.build.buildPath
             val name = libraryName(buildPath, path)
             // A library is read from the project of ITS build: a project of this build, or of a direct included
-            // build located by convention (its build's directory plus its path, default `build` directory; its
-            // KSP tasks are not visible here). Any other build, such as a build nested in an included build, is
+            // build located by convention (its build's directory plus its path, default `build` directory, verified against the
+            // resolved artifact's own location; its KSP tasks are not visible here). Any other build, such as a build nested in an included build, is
             // not known to this build, and the project with the same path in this build is NOT that library.
             val buildDir = when {
                 buildPath == currentBuildPath.get() -> buildDirs.get()[path]?.asFile ?: continue
-                buildPath in includedBuilds.get() ->
-                    includedBuilds.get().getValue(buildPath).asFile.resolve(path.trim(':').replace(':', '/')).resolve("build")
+                buildPath in includedBuilds.get() -> {
+                    val conventional = includedBuilds.get().getValue(buildPath).asFile.resolve(path.trim(':').replace(':', '/')).resolve("build")
+                    // The artifact is a file of the library's real build directory: if it is not under the
+                    // conventional one, the project or its build directory was relocated, and what sits at
+                    // the conventional place is not this library's output.
+                    if (!artifact.file.canonicalFile.startsWith(conventional.canonicalFile)) {
+                        if (warned.add(name)) {
+                            logger.warn(
+                                "Hilt Trace: library $name is in an included build whose project or build directory is not at the " +
+                                    "conventional place, so its catalogue is not read and its slices use bytecode names.",
+                            )
+                        }
+                        continue
+                    }
+                    conventional
+                }
                 else -> {
                     if (warned.add(name)) {
                         logger.warn(

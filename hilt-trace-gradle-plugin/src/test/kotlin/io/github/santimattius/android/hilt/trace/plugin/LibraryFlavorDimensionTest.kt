@@ -29,7 +29,7 @@ class LibraryFlavorDimensionTest {
         val output = build(appFlavor = false)
 
         val dex = dex("debug")
-        assertTrue(output, "fixture.lib.FreeService" in dex && "fixture.lib.FreeServiceModule_ProvideFactory" !in dex)
+        assertTrue(output, "fixture.lib.FreeService\u0000" in dex && "fixture.lib.FreeServiceModule_ProvideFactory" !in dex)
         assertTrue(output, "PaidService" !in dex)
         assertTrue(output, "Hilt Trace" !in output)
     }
@@ -39,11 +39,12 @@ class LibraryFlavorDimensionTest {
         val output = build(appFlavor = true)
 
         val dex = dex("premiumDebug")
-        assertTrue(output, "fixture.lib.PaidService" in dex && "fixture.lib.PaidServiceModule_ProvideFactory" !in dex)
+        assertTrue(output, "fixture.lib.PaidService\u0000" in dex && "fixture.lib.PaidServiceModule_ProvideFactory" !in dex)
         assertTrue(output, "FreeService" !in dex)
         assertTrue(output, "Hilt Trace" !in output)
     }
 
+    /** Dex strings are NUL-terminated, so an exact slice name is not the prefix of `<Service>Module`. */
     private fun dex(variant: String): String = projectDir.root.resolve("build/intermediates/dex/$variant").walkTopDown()
         .filter { it.isFile && it.extension == "dex" }.joinToString("") { String(it.readBytes(), Charsets.ISO_8859_1) }
 
