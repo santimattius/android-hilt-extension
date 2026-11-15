@@ -67,18 +67,45 @@ class RealHiltLibraryTest {
         assertEquals(output, emptyList<String>(), markers.filter { it in dex("release") })
     }
 
+    @Test
+    fun `a library without the app-only product flavor still names its slices in the app flavored debug dex`() {
+        val output = build(appFlavors = true)
+
+        assertTrue(output, "resolved during configuration time" !in output)
+        assertTrue(output, "no KSP variant" !in output)
+        val markers = listOf(catalogueSlice, accessorSlice)
+        assertEquals(output, markers, markers.filter { it in dex("freeDebug") })
+        assertTrue(output, fallbackSlice !in dex("freeDebug"))
+    }
+
+    @Test
+    fun `a library from an included build names its slices in the app debug dex`() {
+        val output = build(included = true)
+
+        assertTrue(output, "resolved during configuration time" !in output)
+        val markers = listOf(catalogueSlice, accessorSlice)
+        assertEquals(output, markers, markers.filter { it in dex("debug") })
+        assertTrue(output, fallbackSlice !in dex("debug"))
+    }
+
     /** The bytes of every dex file the app build of [variant] wrote, as one Latin-1 string so ASCII strings can be searched. */
     private fun dex(variant: String): String = projectDir.root.resolve("build/intermediates/dex/$variant").walkTopDown()
         .filter { it.isFile && it.extension == "dex" }.joinToString("") { String(it.readBytes(), Charsets.ISO_8859_1) }
 
-    private fun build(): String {
+    private fun build(appFlavors: Boolean = false, included: Boolean = false): String {
         val root = projectDir.root
+        val flavors = if (appFlavors) {
+            "flavorDimensions += \"tier\"; productFlavors { create(\"free\") { dimension = \"tier\" } }"
+        } else {
+            ""
+        }
+        val lib = if (included) "libb" else "lib"
         val compilerJar = checkNotNull(System.getProperty("hiltTrace.compilerJar")) { "hiltTrace.compilerJar is not set" }.replace("\\", "/")
         root.resolve("settings.gradle.kts").writeText(
             """
             dependencyResolutionManagement { repositories { google(); mavenCentral() } }
             rootProject.name = "fixture"
-            include(":lib")
+            ${if (included) "includeBuild(\"libb\")" else "include(\":lib\")"}
             """.trimIndent(),
         )
         root.resolve("gradle.properties").writeText("android.useAndroidX=true\n")
@@ -95,10 +122,12 @@ class RealHiltLibraryTest {
                 namespace = "fixture.app"; compileSdk = 36; defaultConfig { minSdk = 24 }
                 compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
                 lint { checkReleaseBuilds = false }
+                $flavors
             }
+            hiltTrace { variants.set(listOf("debug", "freeDebug")) }
             ksp { arg("hiltTrace.module", ":app") }
             dependencies {
-                implementation(project(":lib"))
+                implementation(${if (included) "\"fixture:libb\"" else "project(\":lib\")"})
                 implementation("com.google.dagger:hilt-android:$HILT")
                 ksp("com.google.dagger:hilt-compiler:$HILT")
                 ksp(files("$compilerJar"))
@@ -125,8 +154,8 @@ class RealHiltLibraryTest {
             class App : Application()
             """.trimIndent(),
         )
-        root.resolve("lib/build.gradle.kts").apply { parentFile.mkdirs() }.writeText(
-            """
+        root.resolve("$lib/build.gradle.kts").apply { parentFile.mkdirs() }.writeText(
+            if (included) includedLibraryScript(compilerJar) else """
             plugins {
                 id("com.android.library")
                 id("com.google.devtools.ksp")
@@ -143,8 +172,8 @@ class RealHiltLibraryTest {
             }
             """.trimIndent(),
         )
-        root.resolve("lib/src/main/AndroidManifest.xml").apply { parentFile.mkdirs() }.writeText("<manifest />")
-        root.resolve("lib/src/main/kotlin/fixture/lib/LibModule.kt").apply { parentFile.mkdirs() }.writeText(
+        root.resolve("$lib/src/main/AndroidManifest.xml").apply { parentFile.mkdirs() }.writeText("<manifest />")
+        root.resolve("$lib/src/main/kotlin/fixture/lib/LibModule.kt").apply { parentFile.mkdirs() }.writeText(
             """
             package fixture.lib
 
@@ -172,8 +201,44 @@ class RealHiltLibraryTest {
             }
             """.trimIndent(),
         )
+        if (included) {
+            root.resolve("libb/settings.gradle.kts").writeText(
+                "dependencyResolutionManagement { repositories { google(); mavenCentral() } }\nrootProject.name = \"libb\"",
+            )
+            root.resolve("libb/gradle.properties").writeText("android.useAndroidX=true\n")
+        }
         return GradleRunner.create().withProjectDir(root).withPluginClasspath()
-            .withArguments(":assembleDebug", ":assembleRelease", "--stacktrace").build().output
+            .withArguments(*(if (appFlavors) arrayOf(":assembleFreeDebug") else arrayOf(":assembleDebug", ":assembleRelease")), "--stacktrace").build().output
+    }
+
+    /**
+     * An included build does not see the plugin classpath TestKit injects into the root build, so the
+     * library applies the plugins from the same classpath through `buildscript`.
+     */
+    private fun includedLibraryScript(compilerJar: String): String {
+        val metadata = checkNotNull(javaClass.classLoader.getResource("plugin-under-test-metadata.properties")) { "no plugin metadata" }
+        val classpath = java.util.Properties().apply { metadata.openStream().use { load(it) } }
+            .getProperty("implementation-classpath").split(java.io.File.pathSeparator)
+            .joinToString(", ") { "\"${it.replace("\\", "/")}\"" }
+        return """
+            buildscript {
+                repositories { google(); mavenCentral() }
+                dependencies { classpath(files($classpath)) }
+            }
+            apply(plugin = "com.android.library")
+            apply(plugin = "com.google.devtools.ksp")
+            group = "fixture"
+            extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
+                namespace = "fixture.lib"; compileSdk = 36; defaultConfig { minSdk = 24 }
+                compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+            }
+            (extensions.getByName("ksp") as com.google.devtools.ksp.gradle.KspExtension).arg("hiltTrace.module", ":lib")
+            dependencies {
+                add("implementation", "com.google.dagger:hilt-android:$HILT")
+                add("ksp", "com.google.dagger:hilt-compiler:$HILT")
+                add("ksp", files("$compilerJar"))
+            }
+        """.trimIndent()
     }
 
     private companion object {
