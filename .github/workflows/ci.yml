@@ -194,6 +194,49 @@ jobs:
             app/build/outputs/androidTest-results/
           if-no-files-found: ignore
 
+  # Smoke run of the microbenchmark on a Gradle Managed Device. It only proves the benchmark executes end
+  # to end: emulator timings are NOT a measurement of overhead and no figure is recorded or claimed. The
+  # runner refuses emulators and non-AOT-compiled installs, so -PbenchmarkSmoke=true suppresses those
+  # two errors (androidx.benchmark.suppressErrors=EMULATOR,NOT-AOT-COMPILED). Local equivalent: ./gradlew microbenchmarkSmokeCi -PbenchmarkSmoke=true
+  benchmark-smoke:
+    name: Microbenchmark smoke (managed device)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: "temurin"
+          java-version: "25"
+          cache: "gradle"
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run the microbenchmark as a smoke test
+        run: ./gradlew microbenchmarkSmokeCi -PbenchmarkSmoke=true --configuration-cache -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+
+      # The JSON/report is uploaded for inspection of the run, not as a measurement.
+      - name: Upload benchmark smoke output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-smoke-output
+          path: |
+            benchmark-micro/build/reports/androidTests/
+            benchmark-micro/build/outputs/androidTest-results/
+            benchmark-micro/build/outputs/managed_device_android_test_additional_output/
+          if-no-files-found: ignore
+
   # Canary: fails when AGP/Compose stop needing the Compose Preview workaround in app/build.gradle.kts,
   # so the workaround gets removed instead of lingering. Local: app/scripts/check-compose-preview-canary.sh
   compose-preview-canary:
