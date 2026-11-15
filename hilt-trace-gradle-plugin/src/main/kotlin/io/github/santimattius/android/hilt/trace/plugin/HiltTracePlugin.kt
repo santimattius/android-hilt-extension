@@ -7,10 +7,8 @@ import com.android.build.api.variant.ApplicationVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE
-import java.util.concurrent.Callable
 
 /**
  * Applied to the application module only. Registers [HiltTraceClassVisitorFactory] for the
@@ -83,68 +81,36 @@ public class HiltTracePlugin : Plugin<Project> {
     }
 
     /**
-     * The KSP resources directory of every Android library project on the variant's runtime classpath.
+     * The KSP catalogues of the Android library projects on the variant's runtime classpath, collected by
+     * [LibraryCataloguesTask] from the library variant Gradle selected for this app variant.
      *
-     * KSP writes the catalogue to `generated/ksp/<variant>/resources`, but an Android library does not
-     * package that directory: the catalogue is in none of the library's variants (`android-classes-jar`,
-     * `android-java-res`, `jar`), so [CatalogueTransform] never sees it. The directory is read in place and
-     * the library's `ksp<Variant>Kotlin` task is declared as its producer.
-     *
-     * The libraries are found from the declared project dependencies ([androidLibraries]), not by resolving
-     * the runtime classpath: Gradle visits the producers of these files while it builds the task graph, and
-     * resolving a configuration there is reported by AGP as a resolution at configuration time. The library
-     * variant matches the app variant by name: a library that applies KSP but has no such variant is
-     * skipped with one warning (fail open).
+     * The task reads the resolved artifacts when it runs: resolving the runtime classpath while the task
+     * graph is built is reported as a resolution at configuration time. It is ordered after the libraries'
+     * compilation (hence their KSP task) through the class artifacts it takes as inputs.
      */
     private fun libraryResources(project: Project, variant: ApplicationVariant): FileCollection {
-        val kspTask = "ksp${variant.name.replaceFirstChar(Char::uppercase)}Kotlin"
-        val warned = mutableSetOf<String>()
-        val libraries = {
-            androidLibraries(project, variant).filter { library ->
-                (kspTask in library.tasks.names).also { hasVariant ->
-                    if (!hasVariant && library.plugins.hasPlugin(KSP_PLUGIN) && warned.add(library.path)) {
-                        project.logger.warn(
-                            "Hilt Trace: library ${library.path} has no KSP variant '${variant.name}', " +
-                                "so its catalogue is not read and its slices use bytecode names.",
-                        )
-                    }
-                }
+        val view = variant.runtimeConfiguration.incoming.artifactView {
+            it.attributes.attribute(ARTIFACT_TYPE_ATTRIBUTE, "android-classes-jar")
+            it.componentFilter { id -> id is ProjectComponentIdentifier }
+            it.isLenient = true
+        }
+        val name = variant.name.replaceFirstChar(Char::uppercase)
+        val task = project.tasks.register("hiltTraceLibraryCatalogues$name", LibraryCataloguesTask::class.java) { task ->
+            task.artifacts.set(view.artifacts.resolvedArtifacts.map { it.toList() })
+            task.libraryClasses.from(view.files)
+            task.outputDir.set(project.layout.buildDirectory.dir("intermediates/hilt-trace/libraries/${variant.name}"))
+            for (other in project.rootProject.allprojects) {
+                task.buildDirs.put(other.path, other.layout.buildDirectory)
+                task.kspTasks.put(other.path, other.provider { other.tasks.names.filter { it.startsWith("ksp") && it.endsWith("Kotlin") } })
             }
         }
-        return project.files(Callable { libraries().map { it.layout.buildDirectory.dir("generated/ksp/${variant.name}/resources") } })
-            .builtBy(Callable { libraries().map { library -> library.tasks.matching { it.name == kspTask } } })
+        return project.files(task.flatMap { it.outputDir })
     }
-
-    /**
-     * The Android library projects reachable from the variant through declared project dependencies, in
-     * the current build (a project dependency never names an included build). Fail open: an error while
-     * reading the declarations gives the libraries found so far and one warning.
-     */
-    private fun androidLibraries(project: Project, variant: ApplicationVariant): List<Project> {
-        val found = linkedMapOf<String, Project>()
-        try {
-            val pending = ArrayDeque(projectPaths(variant.runtimeConfiguration))
-            while (pending.isNotEmpty()) {
-                val path = pending.removeFirst()
-                val library = project.rootProject.findProject(path)?.takeIf { it.plugins.hasPlugin("com.android.library") }
-                if (library == null || path in found) continue
-                found[path] = library
-                library.configurations.findByName("${variant.name}RuntimeClasspath")?.let { pending.addAll(projectPaths(it)) }
-            }
-        } catch (e: Exception) {
-            project.logger.warn("Hilt Trace: the project dependencies of '${variant.name}' could not be read, so some Android library catalogues are skipped: ${e.message}")
-        }
-        return found.values.toList()
-    }
-
-    private fun projectPaths(configuration: Configuration): List<String> =
-        configuration.allDependencies.withType(ProjectDependency::class.java).map { it.path }
 
     private companion object {
         const val FAST_INIT_PROPERTY = "dagger.hilt.fastInit"
         const val FAST_INIT_WARNING =
             "Hilt Trace: $FAST_INIT_PROPERTY=false, so Hilt generates no SwitchingProvider; the create rule is skipped."
-        const val KSP_PLUGIN = "com.google.devtools.ksp"
         const val CATALOGUE_RESOURCES = "META-INF/hilt-trace/**"
         val CATALOGUE_SOURCE_FORMS = listOf("jar", "directory")
     }

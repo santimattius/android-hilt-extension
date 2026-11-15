@@ -67,12 +67,28 @@ class RealHiltLibraryTest {
         assertEquals(output, emptyList<String>(), markers.filter { it in dex("release") })
     }
 
+    @Test
+    fun `a library without the app-only product flavor still names its slices in the app flavored debug dex`() {
+        val output = build(appFlavors = true)
+
+        assertTrue(output, "resolved during configuration time" !in output)
+        assertTrue(output, "no KSP variant" !in output)
+        val markers = listOf(catalogueSlice, accessorSlice)
+        assertEquals(output, markers, markers.filter { it in dex("freeDebug") })
+        assertTrue(output, fallbackSlice !in dex("freeDebug"))
+    }
+
     /** The bytes of every dex file the app build of [variant] wrote, as one Latin-1 string so ASCII strings can be searched. */
     private fun dex(variant: String): String = projectDir.root.resolve("build/intermediates/dex/$variant").walkTopDown()
         .filter { it.isFile && it.extension == "dex" }.joinToString("") { String(it.readBytes(), Charsets.ISO_8859_1) }
 
-    private fun build(): String {
+    private fun build(appFlavors: Boolean = false): String {
         val root = projectDir.root
+        val flavors = if (appFlavors) {
+            "flavorDimensions += \"tier\"; productFlavors { create(\"free\") { dimension = \"tier\" } }"
+        } else {
+            ""
+        }
         val compilerJar = checkNotNull(System.getProperty("hiltTrace.compilerJar")) { "hiltTrace.compilerJar is not set" }.replace("\\", "/")
         root.resolve("settings.gradle.kts").writeText(
             """
@@ -95,7 +111,9 @@ class RealHiltLibraryTest {
                 namespace = "fixture.app"; compileSdk = 36; defaultConfig { minSdk = 24 }
                 compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
                 lint { checkReleaseBuilds = false }
+                $flavors
             }
+            hiltTrace { variants.set(listOf("debug", "freeDebug")) }
             ksp { arg("hiltTrace.module", ":app") }
             dependencies {
                 implementation(project(":lib"))
@@ -173,7 +191,7 @@ class RealHiltLibraryTest {
             """.trimIndent(),
         )
         return GradleRunner.create().withProjectDir(root).withPluginClasspath()
-            .withArguments(":assembleDebug", ":assembleRelease", "--stacktrace").build().output
+            .withArguments(*(if (appFlavors) arrayOf(":assembleFreeDebug") else arrayOf(":assembleDebug", ":assembleRelease")), "--stacktrace").build().output
     }
 
     private companion object {
