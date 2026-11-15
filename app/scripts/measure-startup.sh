@@ -79,6 +79,8 @@ echo "  $LABEL_B: $sb"
 field() { printf '%s\n' "$1" | tr ' ' '\n' | sed -n "s/^$2=//p"; }
 ma=$(field "$sa" median); mb=$(field "$sb" median)
 ia=$(field "$sa" iqr); ib=$(field "$sb" iqr)
+na=$(field "$sa" n)
+if [ "$na" -lt 8 ]; then echo "only $na measured starts per variant: too few to judge noise, use the defaults (5 runs x 6 blocks)."; fi
 awk -v la="$LABEL_A" -v lb="$LABEL_B" -v ma="$ma" -v mb="$mb" -v ia="$ia" -v ib="$ib" 'BEGIN {
   d = mb - ma; ad = d < 0 ? -d : d; iq = ia > ib ? ia : ib
   printf "difference of medians (%s - %s): %.10g ms\n", lb, la, d
