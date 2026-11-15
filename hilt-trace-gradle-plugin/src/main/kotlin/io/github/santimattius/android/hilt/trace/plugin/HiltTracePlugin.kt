@@ -98,6 +98,9 @@ public class HiltTracePlugin : Plugin<Project> {
         val task = project.tasks.register("hiltTraceLibraryCatalogues$name", LibraryCataloguesTask::class.java) { task ->
             task.artifacts.set(view.artifacts.resolvedArtifacts.map { it.toList() })
             task.libraryClasses.from(view.files)
+            task.currentBuildPath.set(
+                variant.runtimeConfiguration.incoming.resolutionResult.rootComponent.map { (it.id as ProjectComponentIdentifier).build.buildPath },
+            )
             task.outputDir.set(project.layout.buildDirectory.dir("intermediates/hilt-trace/libraries/${variant.name}"))
             for (build in project.gradle.includedBuilds) {
                 task.includedBuilds.put(":${build.name}", project.layout.projectDirectory.dir(build.projectDir.absolutePath))

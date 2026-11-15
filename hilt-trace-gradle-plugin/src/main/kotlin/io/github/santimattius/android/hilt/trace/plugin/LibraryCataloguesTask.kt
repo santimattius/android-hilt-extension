@@ -1,5 +1,6 @@
 package io.github.santimattius.android.hilt.trace.plugin
 
+import io.github.santimattius.android.hilt.trace.compiler.catalogue.CATALOGUE_DIRECTORY
 import org.gradle.api.DefaultTask
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedArtifactResult
@@ -8,6 +9,7 @@ import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
@@ -15,6 +17,7 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.UntrackedTask
+import java.io.File
 
 /**
  * Collects the KSP catalogue of every Android library the app variant resolved to, from the library
@@ -37,6 +40,10 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.NONE)
     public abstract val libraryClasses: ConfigurableFileCollection
 
+    /** Build path of the build the app variant belongs to (`:` for the root build). */
+    @get:Internal
+    public abstract val currentBuildPath: Property<String>
+
     /** Build directory of every project of this build, by project path. */
     @get:Internal
     public abstract val buildDirs: MapProperty<String, Directory>
@@ -58,16 +65,30 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
         out.deleteRecursively()
         out.mkdirs()
         val warned = mutableSetOf<String>()
+        val owners = mutableMapOf<String, String>()
+        val collided = mutableSetOf<String>()
         for (artifact in artifacts.get()) {
             val id = artifact.id.componentIdentifier as? ProjectComponentIdentifier ?: continue
             val path = id.projectPath
-            // A project of an included build is located by convention: its build's directory plus its path
-            // (default `build` directory). It is not known to this build, so its KSP tasks are not checked.
-            val included = includedBuilds.get()[id.build.buildPath]?.asFile
-            val buildDir = if (included != null) {
-                included.resolve(path.trim(':').replace(':', '/')).resolve("build")
-            } else {
-                buildDirs.get()[path]?.asFile ?: continue
+            val buildPath = id.build.buildPath
+            val name = libraryName(buildPath, path)
+            // A library is read from the project of ITS build: a project of this build, or of a direct included
+            // build located by convention (its build's directory plus its path, default `build` directory; its
+            // KSP tasks are not visible here). Any other build, such as a build nested in an included build, is
+            // not known to this build, and the project with the same path in this build is NOT that library.
+            val buildDir = when {
+                buildPath == currentBuildPath.get() -> buildDirs.get()[path]?.asFile ?: continue
+                buildPath in includedBuilds.get() ->
+                    includedBuilds.get().getValue(buildPath).asFile.resolve(path.trim(':').replace(':', '/')).resolve("build")
+                else -> {
+                    if (warned.add(name)) {
+                        logger.warn(
+                            "Hilt Trace: library $name is in a build this build cannot locate (a build nested in an included build), " +
+                                "so its catalogue is not read and its slices use bytecode names.",
+                        )
+                    }
+                    continue
+                }
             }
             val libraryVariant = libraryVariant(artifact.variant.displayName) ?: continue
             val ksp = kspTasks.get()[path].orEmpty()
@@ -81,7 +102,40 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
                 continue
             }
             val resources = buildDir.resolve("generated/ksp/$libraryVariant/resources")
-            if (resources.isDirectory) resources.copyRecursively(out, overwrite = true)
+            if (resources.isDirectory) copyResources(resources, out, name, owners, collided)
+        }
+    }
+
+    /**
+     * Copies [resources] into [out]. Catalogue files are named after `hiltTrace.module`, so two libraries that
+     * declare the same module id write the same file name: the later one is copied under a distinct name (the
+     * loader reads every `*.json`) and reported once, instead of overwriting the first.
+     */
+    private fun copyResources(
+        resources: File,
+        out: File,
+        library: String,
+        owners: MutableMap<String, String>,
+        collided: MutableSet<String>,
+    ) {
+        for (file in resources.walkTopDown().filter { it.isFile }) {
+            val relative = file.relativeTo(resources).invariantSeparatorsPath
+            var target = out.resolve(relative)
+            if (target.exists() && relative.startsWith("$CATALOGUE_DIRECTORY/")) {
+                if (target.readBytes().contentEquals(file.readBytes())) continue
+                if (collided.add(relative)) {
+                    logger.warn(
+                        "Hilt Trace: libraries ${owners.getValue(relative)} and $library write the same catalogue file " +
+                            "${file.name} (the same hiltTrace.module, or ids that differ only by ':' versus '_'); both are read.",
+                    )
+                }
+                var n = 2
+                while (target.resolveSibling("${file.nameWithoutExtension}~$n.${file.extension}").also { target = it }.exists()) n++
+            } else {
+                owners.putIfAbsent(relative, library)
+            }
+            target.parentFile.mkdirs()
+            file.copyTo(target, overwrite = true)
         }
     }
 
@@ -92,6 +146,9 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
          */
         fun libraryVariant(displayName: String): String? =
             Regex("^([A-Za-z0-9]+?)(?:Api|Runtime)Elements").find(displayName.substringAfterLast(':'))?.groupValues?.get(1)
+
+        fun libraryName(buildPath: String, projectPath: String) =
+            if (buildPath == ":") projectPath else if (projectPath == ":") buildPath else buildPath + projectPath
 
         fun kspTaskName(variantName: String) = "ksp${variantName.replaceFirstChar(Char::uppercase)}Kotlin"
     }
