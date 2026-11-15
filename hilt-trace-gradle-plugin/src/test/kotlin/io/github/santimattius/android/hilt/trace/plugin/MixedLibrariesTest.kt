@@ -1,6 +1,7 @@
 package io.github.santimattius.android.hilt.trace.plugin
 
 import org.gradle.testkit.runner.GradleRunner
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -31,7 +32,39 @@ class MixedLibrariesTest {
         assertTrue(output, "Hilt Trace" !in output)
     }
 
-    private fun build(): String {
+    @Test
+    fun `the mixed libraries are named again when the configuration cache is reused`() {
+        val first = build("--configuration-cache")
+        // The dex is rebuilt on the reused configuration, so the names come from this run.
+        projectDir.root.resolve("build/intermediates/dex").deleteRecursively()
+        val second = run("--configuration-cache")
+
+        assertTrue(first, "Configuration cache entry stored" in first)
+        assertTrue(second, "Reusing configuration cache" in second)
+        val dex = projectDir.root.resolve("build/intermediates/dex/freeDebug").walkTopDown()
+            .filter { it.isFile && it.extension == "dex" }.joinToString("") { String(it.readBytes(), Charsets.ISO_8859_1) }
+        assertTrue(second, "fixture.a.AService\u0000" in dex && "fixture.b.BService\u0000" in dex)
+        assertTrue(second, "Hilt Trace" !in second && "resolved during configuration time" !in second)
+    }
+
+    @Test
+    fun `an included-build library with a relocated build directory is skipped with one warning naming it`() {
+        val output = build(relocatedIncludedBuildDir = true)
+
+        val dex = projectDir.root.resolve("build/intermediates/dex/freeDebug").walkTopDown()
+            .filter { it.isFile && it.extension == "dex" }.joinToString("") { String(it.readBytes(), Charsets.ISO_8859_1) }
+        assertTrue("current-build catalogue lost", "fixture.a.AService\u0000" in dex)
+        // Dex strings are NUL-terminated: the exact name is not the prefix of `fixture.b.BServiceModule`.
+        assertTrue("the relocated catalogue cannot be read", "fixture.b.BService\u0000" !in dex)
+        val warnings = output.lines().filter { it.startsWith("Hilt Trace:") }
+        assertEquals(output, 1, warnings.size)
+        assertTrue(output, ":incl" in warnings.single() && "build directory" in warnings.single())
+    }
+
+    private fun run(vararg extra: String): String = GradleRunner.create().withProjectDir(projectDir.root).withPluginClasspath()
+        .withArguments(":assembleFreeDebug", "--stacktrace", *extra).build().output
+
+    private fun build(vararg extra: String, relocatedIncludedBuildDir: Boolean = false): String {
         val root = projectDir.root
         val compilerJar = checkNotNull(System.getProperty("hiltTrace.compilerJar")) { "hiltTrace.compilerJar is not set" }.replace("\\", "/")
         val repos = "dependencyResolutionManagement { repositories { google(); mavenCentral() } }"
@@ -76,18 +109,17 @@ class MixedLibrariesTest {
             "package fixture.app\n\nimport android.app.Application\nimport dagger.hilt.android.HiltAndroidApp\n\n@HiltAndroidApp\nclass App : Application()\n",
         )
         library(root.resolve("lib"), "a", "AService", compilerJar)
-        library(root.resolve("incl"), "b", "BService", compilerJar)
+        library(root.resolve("incl"), "b", "BService", compilerJar, relocatedIncludedBuildDir)
         root.resolve("incl/settings.gradle.kts").writeText("$repos\nrootProject.name = \"incl\"")
         root.resolve("incl/gradle.properties").writeText("android.useAndroidX=true\n")
-        return GradleRunner.create().withProjectDir(root).withPluginClasspath()
-            .withArguments(":assembleFreeDebug", "--stacktrace").build().output
+        return run(*extra)
     }
 
     /**
      * An Android library at [dir] with module id `:[pkg]` that provides [service] of `fixture.[pkg]`. The
      * included build (`b`) applies the plugins from the classpath TestKit injects into the root build only.
      */
-    private fun library(dir: File, pkg: String, service: String, compilerJar: String) {
+    private fun library(dir: File, pkg: String, service: String, compilerJar: String, relocatedBuildDir: Boolean = false) {
         val included = pkg == "b"
         val metadata = checkNotNull(javaClass.classLoader.getResource("plugin-under-test-metadata.properties")) { "no plugin metadata" }
         val classpath = Properties().apply { metadata.openStream().use { load(it) } }
@@ -120,6 +152,7 @@ class MixedLibrariesTest {
                 compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
             }
             $kspArg
+            ${if (relocatedBuildDir) "layout.buildDirectory.set(layout.projectDirectory.dir(\"out\"))" else ""}
             dependencies {
                 $deps
             }
