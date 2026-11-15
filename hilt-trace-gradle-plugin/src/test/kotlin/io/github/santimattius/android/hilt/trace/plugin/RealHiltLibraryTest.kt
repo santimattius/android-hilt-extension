@@ -3,7 +3,6 @@ package io.github.santimattius.android.hilt.trace.plugin
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -21,14 +20,16 @@ import org.junit.rules.TemporaryFolder
  * What it proves (`a real Hilt library module is instrumented in the app debug build only`):
  * - the library's KSP run writes a catalogue holding the real binding and entry point;
  * - the Hilt-generated `SwitchingProvider` of the app component, which creates the library binding, is
- *   instrumented in the debug build: its dex holds the `hilt.create` category and the slice name of the
- *   creation case, and the release dex holds neither. The slice name seen here is the bytecode
- *   fallback `fixture.lib.LibModule_ProvideLibServiceFactory`, not the catalogue name.
+ *   instrumented in the debug build: its dex holds the `hilt.create` category and not the bytecode
+ *   fallback name `fixture.lib.LibModule_ProvideLibServiceFactory`; the release dex holds neither.
  *
- * What it does not prove: the library catalogue does not reach the app's transform when the library is
- * an Android library *project*. The build logs "no catalogue found", so the binding is not named
- * `fixture.lib.LibService` and the `@EntryPoint` accessor is not traced (`SingletonComponent.libService`);
- * both are asserted by the ignored test below, which documents that gap. Also not proven: the dex checks
+ * What `the catalogue of a real Hilt library names its slices in the app debug dex` proves: the library
+ * catalogue reaches the app transform when the library is an Android library *project*, so the binding
+ * is named `fixture.lib.LibService` and the `@EntryPoint` accessor is traced
+ * (`SingletonComponent.libService`) in debug and not in release. An Android library does not package
+ * the KSP resources directory, so the plugin reads it in place (see `HiltTracePlugin`).
+ *
+ * What it does not prove: the dex checks
  * are string-level (the ASM tests cover the `begin`/`end` call sites), only `SingletonComponent` is used,
  * and the `HiltTrace` runtime is a stub, so nothing is recorded at run time.
  */
@@ -46,16 +47,17 @@ class RealHiltLibraryTest {
     fun `a real Hilt library module is instrumented in the app debug build only`() {
         val output = build()
 
-        val catalogue = projectDir.root.resolve("lib/build/generated/ksp/debug/resources/META-INF/hilt-trace/_lib.json")
+        // The library catalogue is wired lazily: AGP must not report a classpath resolved while configuring.
+        assertTrue(output, "resolved during configuration time" !in output)
+        val catalogue =projectDir.root.resolve("lib/build/generated/ksp/debug/resources/META-INF/hilt-trace/_lib.json")
         assertTrue(output, catalogue.isFile)
         val json = catalogue.readText()
         assertTrue(json, "\"fixture.lib.LibEntryPoint\"" in json && "\"provideLibService\"" in json)
-        val markers = listOf(createCategory, fallbackSlice)
-        assertEquals(output, markers, markers.filter { it in dex("debug") })
-        assertEquals(output, emptyList<String>(), markers.filter { it in dex("release") })
+        // The slice is named from the catalogue, so the bytecode fallback name is not in the dex.
+        assertEquals(output, listOf(createCategory), listOf(createCategory, fallbackSlice).filter { it in dex("debug") })
+        assertEquals(output, emptyList<String>(), listOf(createCategory, fallbackSlice).filter { it in dex("release") })
     }
 
-    @Ignore("Known gap: the catalogue of an Android library project does not reach the app transform (see class KDoc).")
     @Test
     fun `the catalogue of a real Hilt library names its slices in the app debug dex`() {
         val output = build()
