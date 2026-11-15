@@ -106,13 +106,14 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
                     continue
                 }
             }
-            val libraryVariant = libraryVariant(artifact.variant.displayName)
+            val attributes = artifact.variant.attributes.let { all -> all.keySet().associate { it.name to all.getAttribute(it).toString() } }
+            val libraryVariant = libraryVariant(attributes)
             if (libraryVariant == null) {
-                // A JVM project (`project ':x'`, or the bare `apiElements`/`runtimeElements`) is not an Android library.
-                if (!isAndroidLibraryElements(artifact.variant.displayName)) continue
+                // A JVM project has none of the Android variant attributes: it is not an Android library.
+                if (!isAndroidLibrary(attributes)) continue
                 if (warned.add(name)) {
                     logger.warn(
-                        "Hilt Trace: cannot tell which variant of library $name Gradle selected from '${artifact.variant.displayName}', " +
+                        "Hilt Trace: cannot tell which variant of library $name Gradle selected from its attributes $attributes, " +
                             "so its catalogue is not read and its slices use bytecode names.",
                     )
                 }
@@ -169,18 +170,19 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
     }
 
     internal companion object {
+        private const val BUILD_TYPE = "com.android.build.api.attributes.BuildTypeAttr"
+        private const val FLAVOR_PREFIX = "com.android.build.api.attributes.ProductFlavor:"
+        private const val VARIANT = "com.android.build.gradle.internal.attributes.VariantAttr"
+
+        /** True when the resolved variant carries the Android build type attribute; a JVM library does not. */
+        fun isAndroidLibrary(attributes: Map<String, String>): Boolean = BUILD_TYPE in attributes
+
         /**
-         * `configuration ':lib:freeDebugRuntimeElements'` -> `freeDebug`; null when the name is not a
-         * library elements configuration.
+         * The library variant Gradle selected, from the attributes of the resolved variant: AGP's variant name
+         * attribute (`freeDebug`), or the build type of a library without flavors. Null when it cannot be told.
          */
-        fun libraryVariant(displayName: String): String? =
-            Regex("^([A-Za-z0-9]+?)(?:Api|Runtime)Elements").find(displayName.substringAfterLast(':'))?.groupValues?.get(1)
-
-        /** True for a `configuration ':lib:...'` display name that is not a JVM library's bare elements. */
-        fun isAndroidLibraryElements(displayName: String): Boolean =
-            displayName.startsWith("configuration ") && displayName.substringAfterLast(':').trimEnd('\'') !in JVM_ELEMENTS
-
-        private val JVM_ELEMENTS = setOf("apiElements", "runtimeElements")
+        fun libraryVariant(attributes: Map<String, String>): String? =
+            attributes[VARIANT] ?: attributes[BUILD_TYPE]?.takeIf { attributes.keys.none { it.startsWith(FLAVOR_PREFIX) } }
 
         fun libraryName(buildPath: String, projectPath: String) =
             if (buildPath == ":") projectPath else if (projectPath == ":") buildPath else buildPath + projectPath
