@@ -14,7 +14,25 @@ The difference between the two medians is the cost of the disabled-category chec
 
 ## What is not proved
 
-No timing has been recorded or claimed. Microbenchmark numbers need a device (preferably physical, not an emulator), so this repository states no overhead figure. Run it on a device and read the two medians.
+## Measured (by hand, 2026-11-15, not CI)
+
+One physical moto g05, Android 15, `speed`-compiled, charging, 29 C, CPU locked; five full runs of the two benchmarks, 50 samples each:
+
+| Path | Median per call |
+|---|---|
+| `baseline` (the work only) | 4.63 ns (spread of 0.04 ns across runs) |
+| `instrumentedWithDisabledCategory` | 24.3 to 25.0 ns in three runs; 33.3 and 35.3 ns in two noisier runs |
+| Difference | about 20 ns in the three clean runs, up to about 31 ns in the noisy ones |
+
+The two noisy runs had maxima of 574 and 756 ns and about 0.07 allocations per iteration, which were not attributed; the three clean runs allocated nothing.
+
+How it was run: an emulator was connected as well, so the APK from `:benchmark-micro:assembleMicrobenchmark` was installed with `adb -s <serial> install -t`, compiled with `adb -s <serial> shell cmd package compile -m speed -f <test package>` (the runner raises `NOT-AOT-COMPILED` otherwise) and run with `adb -s <serial> shell am instrument -w <test package>/androidx.benchmark.junit4.AndroidBenchmarkRunner`.
+
+## What is not proved
+
+- It is a synthetic call path with the shape of the generated code and a few instructions of work, not the generated Dagger code, and no tracing driver is installed.
+- One device, one manual session; nothing from CI (the emulator smoke run is not a measurement).
+- It says nothing about the total effect on an app start. Issue #72 tracks recording this in the docs and measuring a real start.
 
 ## Run
 
