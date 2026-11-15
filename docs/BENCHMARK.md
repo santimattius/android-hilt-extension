@@ -51,3 +51,28 @@ The `benchmark-smoke` CI job runs `./gradlew microbenchmarkSmokeCi -PbenchmarkSm
 **The CI run only proves that the benchmark executes end to end. Emulator timings are not a measurement of overhead**; the job reads no number, asserts no threshold, and this repository still states no overhead figure. Status: the job passed in CI on PR #60 (device `smoke`, API 34): 2 tests, 0 failures, 0 skipped, and the JSON holds 50 runs for each of the two benchmarks. AndroidX prefixes the benchmark names with `EMULATOR_NOT-AOT-COMPILED_` to mark the suppressed errors. The first CI run failed on `NOT-AOT-COMPILED` alone, which is why that error is suppressed too. Not run locally (no emulator) and not run on a physical device; the repository records no figure from these runs.
 
 The benchmark runs against the release build type of the module (`testBuildType = "release"`) so it is not debuggable.
+
+## App start (instrumented vs uninstrumented sample)
+
+`app/scripts/measure-startup.sh` measures the cold start (`am start -W`, `TotalTime`) of the sample on one device with and without the Hilt Trace instrumentation. Both builds are the `minified` build type (R8, non-debuggable, debug keystore), the same code, differing only in instrumentation: `-PhiltTraceEnabled=false` turns the plugin off (default is on). The `minified` type is used because it is the only non-debuggable build that carries the instrumentation (`hiltTrace { variants }`).
+
+**This repository states no app start figure yet.** The maintainer records one after running the script on a physical device.
+
+Build both APKs (they share one output path, so copy the first before the second build):
+
+```sh
+./gradlew :app:assembleMinified
+cp app/build/outputs/apk/minified/app-minified.apk /tmp/instrumented.apk
+./gradlew -PhiltTraceEnabled=false :app:assembleMinified
+cp app/build/outputs/apk/minified/app-minified.apk /tmp/plain.apk
+```
+
+Run (always pass the serial; `adb devices` lists it):
+
+```sh
+app/scripts/measure-startup.sh <adb-serial> /tmp/instrumented.apk instrumented /tmp/plain.apk plain [runs-per-block=5] [blocks=6]
+```
+
+The script installs each APK (`adb install -r`) and `speed`-compiles it before every block, then force-stops and starts the app with a 2 s pause. Variants alternate in blocks (A, B, A, B, ...) so thermal drift and background load hit both; the first start of each block is discarded as warm-up. Keep the device charging, screen on and idle, and run it a few times.
+
+How to read it: per variant it prints `n`, `median`, `p90`, `min`, `max` and `iqr` of `TotalTime` in ms, then the difference of the medians. The last line says whether that difference is smaller than the larger IQR; if so it is within noise and no effect can be claimed. `app/scripts/test-measure-startup.sh` tests the statistics (`measure-startup.sh --stats`) without a device. Emulator numbers mean nothing.
