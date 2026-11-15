@@ -33,6 +33,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Which build type the instrumented tests run against. Default: debug. Pass
+    // -PtestBuildType=minified to run them against the R8-minified, instrumented build type instead (see
+    // :instrumentedTestsMinifiedCi and docs/VERIFY.md). AGP allows one test build type per build, so the
+    // switch is a property; the managed-device task is :app:ci<Debug|Minified>AndroidTest accordingly.
+    testBuildType = providers.gradleProperty("testBuildType").getOrElse("debug")
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -54,6 +60,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // R8 runs separately over the app and over the androidTest APK, and neither sees the tests'
+            // references to the app: the keep rules go to the app run only when the tests target this build
+            // type (-PtestBuildType=minified), so verifyMinifiedTracing and normal builds are unchanged. The
+            // test APK run gets the same file through testProguardFiles (it needs the dontwarn).
+            if (testBuildType == "minified") proguardFiles("proguard-test-rules.pro")
+            testProguardFiles("proguard-test-rules.pro")
         }
     }
     compileOptions {
@@ -151,6 +163,8 @@ dependencies {
     debugImplementation(libs.androidx.tracing.wire)
     // The minified variant needs a tracing driver too, or R8 has nothing that can enable a category.
     "minifiedImplementation"(libs.androidx.tracing.wire)
+    // The Compose tests launch ComponentActivity, which the test manifest declares (debug has it already).
+    "minifiedImplementation"(libs.androidx.ui.test.manifest)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
