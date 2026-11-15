@@ -90,7 +90,16 @@ public abstract class LibraryCataloguesTask : DefaultTask() {
                     continue
                 }
             }
-            val libraryVariant = libraryVariant(artifact.variant.displayName) ?: continue
+            val libraryVariant = libraryVariant(artifact.variant.displayName)
+            if (libraryVariant == null) {
+                if (warned.add(name)) {
+                    logger.warn(
+                        "Hilt Trace: cannot tell which variant of library $name Gradle selected from '${artifact.variant.displayName}', " +
+                            "so its catalogue is not read and its slices use bytecode names.",
+                    )
+                }
+                continue
+            }
             val ksp = kspTasks.get()[path].orEmpty()
             if (ksp.isNotEmpty() && kspTaskName(libraryVariant) !in ksp) {
                 if (warned.add(path)) {
