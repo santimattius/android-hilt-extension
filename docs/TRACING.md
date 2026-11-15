@@ -19,7 +19,7 @@ Hilt Trace adds Perfetto sections around Hilt object creation and injection in t
 | Category | Section name | Produced by |
 |----------|--------------|-------------|
 | `hilt.create` | `Type` or `Type@Qualifier` (qualified type name, e.g. `kotlin.String@javax.inject.Named(value=audience)`) | Creation of a binding in a `SwitchingProvider` case: scoped bindings, and bindings requested through `Provider`/`Lazy`. |
-| `hilt.create` | The class of the first constructor or module factory in the case | Same, when the binding has no catalogue entry (for example a library without the processor). Observed: `...di.CoroutinesModule_DefaultDispatcherFactory`. |
+| `hilt.create` | The class of the constructor or module factory that produces the value the case returns (not one of its arguments) | Same, when the binding has no catalogue entry (for example a library without the processor). Observed: `...di.CoroutinesModule_ApplicationScopeFactory`. |
 | `hilt.inject` | `<SimpleName>.members` | Member injection of an `@AndroidEntryPoint` class: Activity, View, Service and Fragment shapes. |
 | `hilt.inject` | `<Component>.<method>` | An `@EntryPoint` accessor method, named after the component it is installed in. |
 
