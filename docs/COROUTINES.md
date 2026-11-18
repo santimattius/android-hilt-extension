@@ -56,10 +56,23 @@ Resolves a `dagger.Lazy` on the dispatcher (default `Dispatchers.Default`). Cach
 Both adapters share one internal helper (`resolveBlockingOn`, a `withContext`). Evidence: `SuspendProviderTest` and `LazyAwaitTest` cover the cancel-before-dispatch and failure cases; the sample's `BlockingResolutionDemoTest` demonstrates the uninterruptible running call.
 
 
+Both adapters also open a trace section around the whole call, so the `hilt.create` slice of a deferred binding resolved through them nests under it (see [Trace section](#trace-section-of-the-adapters)). The section does not change the contract below.
+
 - A caller that is already cancelled fails fast with `CancellationException`.
 - If cancellation arrives before the dispatcher runs the call, `get()` is never invoked.
 - A `get()` that is already running cannot be interrupted, because it is a blocking call. The caller still gets `CancellationException` afterwards, not the result.
 - An exception thrown by `get()` reaches the caller (the exception may be a stack-trace-recovered copy of the same type and message).
+
+### Trace section of the adapters
+
+`Provider.suspending(...)` opens the section `Provider.suspending` and `Lazy.await(...)` opens `Lazy.await`, in the category `hilt.resolve`, around the blocking `get()`. The names are fixed: the generic type is erased, so the section does not say which binding was requested. It is the requester marker, not the binding; the binding is the `hilt.create` slice inside it.
+
+Evidence: on the sample's real Hilt graph (Android 15 emulator), `DeferredResolutionTraceTest` records, for a `Provider<FreshWidget>` and a `dagger.Lazy<ExpensiveService>`, a `hilt.create` slice strictly between the BEGIN and END of the helper section on the same track, with the calling coroutine on the instrumentation thread and on a `Dispatchers.Default` worker. The recorded order on the worker track is `BEGIN hilt.resolve` then `BEGIN hilt.create <binding>`, `END`, `END`. A suspended caller is written as several segments of the section (the same behaviour as `traceCoroutine`), so the caller's track shows empty `hilt.resolve` segments next to the one that holds the creation.
+
+- Only a creation slice exists for the first resolution of a scoped binding; later calls leave an empty `hilt.resolve` section (cache hits have no slice of their own, see [Limitations](LIMITATIONS.md)).
+- When `hilt.resolve` is disabled the adapters call `get()` through `withContext` as before; the category is checked first, so the disabled path adds no section wrapper. Not measured with `:benchmark-micro`.
+- `SuspendLazy` does not open a section.
+- A plain `Provider.get()` or `Lazy.get()` in your own code is not linked to its caller. Wrap your own call site: `traceCoroutine("app.feature", "load-profile") { provider.get() }` from a coroutine, or the same section opened with `androidx.tracing` in blocking code, and the `hilt.create` slice nests under it on that thread.
 
 ## SuspendLazy
 
@@ -81,4 +94,4 @@ suspend fun refresh() = traceCoroutine(category = "app.sync", name = "refresh") 
 
 A passthrough to `androidx.tracing` that reads `Tracer.global` on every call. The section follows the coroutine across suspension points and thread switches, so a suspended coroutine is written as several thread segments of one named section. It is a plain call of the block when the category is disabled or no driver is installed. The result and any exception reach the caller unchanged.
 
-The category is yours; the Hilt categories `hilt.create` and `hilt.inject` are written by the plugin. Whether your category is recorded depends on the driver (see [Tracing](TRACING.md)).
+The category is yours; the Hilt categories `hilt.create` and `hilt.inject` are written by the plugin, and `hilt.resolve` by `Provider.suspending` and `Lazy.await`. Whether your category is recorded depends on the driver (see [Tracing](TRACING.md)).
