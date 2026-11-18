@@ -79,7 +79,21 @@ Observed behavior:
 - Without `START` the automatic driver recorded nothing (the file stayed at a 61-byte header).
 - Files are empty until `FLUSH_TRACES_GET_PATH`. Several files may exist; the newest one holds the run. An older empty file is normal.
 - `STOP` returns the setting to disabled.
-- Recording with Android Studio's System Trace or a `perfetto` command line instead of the in-process file has not been tried for these sections (unverified). The in-process file above is the verified path.
+- A system-wide `perfetto` capture does not contain the `hilt.*` sections by default: they only go through the in-process `tracing-wire` file. The opt-in system trace bridge below mirrors them; it is off by default. Its effect in a real system-wide capture has not been verified yet (only JVM unit tests with a fake platform trace).
+
+## System-wide Perfetto capture
+
+`HiltTrace.setSystemTraceEnabled(true)` also mirrors each `hilt.create` and `hilt.inject` section to the system trace (`androidx.tracing.Trace.beginSection` / `endSection`; labels are cut at 127 characters). It is off by default, so nothing changes until you call it. Call it early, for example in `Application.onCreate`; the sample does so for debuggable builds only. This capture recipe is unverified. The mirror records only while a system trace session runs, and it adds cost on the traced call path (not yet measured).
+
+```bash
+PKG=io.github.santimattius.android.sample
+adb shell am force-stop $PKG
+adb shell perfetto -o /data/misc/perfetto-traces/hilt.pftrace -t 10s -a $PKG sched freq am wm view
+# start the app and use it while the capture runs
+adb pull /data/misc/perfetto-traces/hilt.pftrace .
+```
+
+Or use `record_android_trace -a $PKG -t 10s -o hilt.pftrace`. Open the file in the [Perfetto UI](https://ui.perfetto.dev/) and search for `hilt.` slice names.
 
 ## Release builds and the catalogue
 
