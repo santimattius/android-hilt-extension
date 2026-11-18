@@ -79,6 +79,13 @@ class MainActivityDemoTest {
     fun singletonCardReportsASharedInstance() = run(DemoId.SINGLETON_BINDING, "same instance: true")
 
     @Test
+    fun libraryBindingCardReportsTwoDistinctInstances() = run(
+        DemoId.LIBRARY_BINDING,
+        "Hello from :sample-feature",
+        "distinct instances: true",
+    )
+
+    @Test
     fun dispatchersCardReportsEveryQualifier() = run(
         DemoId.DISPATCHERS,
         "@IoDispatcher:",

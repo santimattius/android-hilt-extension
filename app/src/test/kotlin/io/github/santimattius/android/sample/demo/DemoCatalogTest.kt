@@ -25,6 +25,7 @@ class DemoCatalogTest {
         assertEquals("hilt.inject DemoView.members", sections[DemoId.VIEW_INJECTION])
         assertEquals("hilt.inject DemoService.members", sections[DemoId.SERVICE_INJECTION])
         assertTrue(sections.getValue(DemoId.VIEWMODEL_INJECTION)!!.startsWith("hilt.create "))
+        assertEquals("hilt.create io.github.santimattius.android.sample.feature.LibraryGreeting", sections[DemoId.LIBRARY_BINDING])
         assertEquals("sample.coroutine refresh", sections[DemoId.TRACE_COROUTINE])
         assertTrue(sections.getValue(DemoId.COMPLEX_GRAPH)!!.startsWith("hilt.create "))
         assertTrue(sections.getValue(DemoId.COMPLEX_GRAPH_MAIN_THREAD)!!.startsWith("hilt.create "))
