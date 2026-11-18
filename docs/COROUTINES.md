@@ -72,7 +72,7 @@ Evidence: on the sample's real Hilt graph (Android 15 emulator), `DeferredResolu
 - Only a creation slice exists for the first resolution of a scoped binding; later calls leave an empty `hilt.resolve` section (cache hits have no slice of their own, see [Limitations](LIMITATIONS.md)).
 - When `hilt.resolve` is disabled the adapters call `get()` through `withContext` as before; the category is checked first, so the disabled path adds no section wrapper. Not measured with `:benchmark-micro`.
 - `SuspendLazy` does not open a section.
-- A plain `Provider.get()` or `Lazy.get()` in your own code is not linked to its caller. Wrap your own call site: `traceCoroutine("app.feature", "load-profile") { provider.get() }` from a coroutine, or the same section opened with `androidx.tracing` in blocking code, and the `hilt.create` slice nests under it on that thread.
+- A plain `Provider.get()` or `Lazy.get()` in your own code is not linked to its caller. Wrap your own call site: `traceCoroutine("app.feature", "load-profile") { provider.get() }` from a coroutine (unverified end to end: only the two adapters are covered by a test). In blocking code, a section of your own opened with `androidx.tracing` on the same thread should nest the same way (unverified).
 
 ## SuspendLazy
 
