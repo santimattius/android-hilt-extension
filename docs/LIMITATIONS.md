@@ -11,6 +11,7 @@ Confirmed against Hilt 2.60.1 output.
 | Unscoped bindings built inline inside a component accessor | Dagger inlines them; only the accessor section covers them. If something requests a `Provider<T>`/`Lazy<T>` of the binding, it gets a `SwitchingProvider` case and a `hilt.create` section. The sample's `provideAudience` is `@Singleton` for this reason. |
 | `@Binds` and multibindings | No `SwitchingProvider` case. |
 | The router `get()` of a `SwitchingProvider` | Not traced. |
+| A plain `Provider.get()` / `Lazy.get()` in user code is not linked to its requester | The router `get()` of a `SwitchingProvider` receives only an `id`, so generated code cannot identify the caller; the `hilt.create` slice is a root slice on the thread that ran it. The helpers of this project (`Provider.suspending`, `Lazy.await`) open a `hilt.resolve` section and are linked. For your own call site, wrap it in `traceCoroutine` or a section of your own. Evidence: a read-only spike of the generated code and `DeferredResolutionTraceTest` (helpers only). Issue #84. |
 | `DoubleCheck` cache hits | Only the first creation of a scoped binding has a section (`TraceCaptureTest.aSingletonIsCreatedOnceNoMatterHowOftenItIsRequested`). |
 | Constructor arguments of a created object | One section per case; no sections for the arguments. |
 | `*_MembersInjector.injectMembers` | Hilt 2.60.1 output has no caller; a `MembersInjector<T>` requested through DI is not traced. |

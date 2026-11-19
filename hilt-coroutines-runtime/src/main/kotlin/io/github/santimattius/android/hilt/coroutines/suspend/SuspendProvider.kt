@@ -20,4 +20,4 @@ public fun interface SuspendProvider<out T> {
  * already running cannot be interrupted, because [Provider.get] is a blocking call.
  */
 public fun <T> Provider<T>.suspending(dispatcher: CoroutineDispatcher): SuspendProvider<T> =
-    SuspendProvider { resolveBlockingOn(dispatcher) { get() } }
+    SuspendProvider { resolveBlockingOn(dispatcher, "Provider.suspending") { get() } }

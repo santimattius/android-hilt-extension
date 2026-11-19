@@ -21,6 +21,7 @@ Hilt Trace adds Perfetto sections around Hilt object creation and injection in t
 | `hilt.create` | `Type` or `Type@Qualifier` (qualified type name, e.g. `kotlin.String@javax.inject.Named(value=audience)`) | Creation of a binding in a `SwitchingProvider` case: scoped bindings, and bindings requested through `Provider`/`Lazy`. |
 | `hilt.create` | The class of the constructor or module factory that produces the value the case returns (not one of its arguments) | Same, when the binding has no catalogue entry (for example a library without the processor). Observed: `...di.CoroutinesModule_ApplicationScopeFactory`. |
 | `hilt.create` | `Type` of the assisted class (the catalogue name of its `ASSISTED_INJECT` entry, else the constructed class) | Construction of an `@AssistedInject` class through its `@AssistedFactory`, and of a `@HiltWorker`. Hilt builds the factory as an anonymous `SingletonCImpl$SwitchingProvider$N`; the whole `create(...)` is wrapped, so the creation of the dependencies shows nested inside. The allocation of the factory object itself has no section. Observed: `...demo.AssistedWidget` containing `...greeting.GreetingRepository`. |
+| `hilt.resolve` | `Provider.suspending` or `Lazy.await` | The suspend adapters of `hilt-coroutines-runtime`, around the blocking `get()`. The `hilt.create` slice of the resolved binding nests inside (`DeferredResolutionTraceTest`). The name does not identify the binding. |
 | `hilt.inject` | `<SimpleName>.members` | Member injection of an `@AndroidEntryPoint` class: Activity, View, Service and Fragment shapes. |
 | `hilt.inject` | `<Component>.<method>` | An `@EntryPoint` accessor method, named after the component it is installed in. |
 
@@ -32,6 +33,8 @@ Hilt Trace adds Perfetto sections around Hilt object creation and injection in t
 | `@AssistedInject` creation through its factory | `AssistedCreationTraceTest` on the real debug build of the sample (Android 15 emulator): `hilt.inject SingletonComponent.assistedWidgetFactory`, then `hilt.create ...AssistedWidget` with `hilt.create ...GreetingRepository` inside it, and no section named after `SwitchingProvider$N`. ASM tests on classes captured from real Hilt output (`AssistedFactoryRuleTest`). |
 | `@HiltWorker` creation | Not verified end to end: the sample has no WorkManager. It shares the rule with `@AssistedInject` (a `SwitchingProvider$N` whose `create(...)` constructs the class), which is tested on assisted classes only. |
 | Fragment injection | ASM tests on a class captured from real Hilt output (`InjectRuleTest`, `FixtureCoverageTest`). The sample has no Fragment, so it is not covered end to end. |
+
+A plain `Provider.get()` or `Lazy.get()` in your own code has no section that names its caller: its `hilt.create` slice is a root slice unless your code wraps the call in a section ([Coroutines](COROUTINES.md#trace-section-of-the-adapters), [Limitations](LIMITATIONS.md)).
 
 Sections nest by call: the sample's `MainActivity.members` section contains the `hilt.create` section of the repository it injects, which contains the section of the scoped qualified value it requests.
 

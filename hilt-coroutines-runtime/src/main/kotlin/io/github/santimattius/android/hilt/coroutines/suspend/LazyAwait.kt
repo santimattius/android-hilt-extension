@@ -12,4 +12,4 @@ import kotlinx.coroutines.Dispatchers
  * after it returns; a resolution that is already running cannot be interrupted.
  */
 public suspend fun <T> Lazy<T>.await(dispatcher: CoroutineDispatcher = Dispatchers.Default): T =
-    resolveBlockingOn(dispatcher) { get() }
+    resolveBlockingOn(dispatcher, "Lazy.await") { get() }
