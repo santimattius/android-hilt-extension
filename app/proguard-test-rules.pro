@@ -21,6 +21,12 @@
 -keep class dagger.hilt.internal.GeneratedComponentManagerHolder { *; }
 -keep class dagger.hilt.android.internal.managers.ApplicationComponentManager { *; }
 
+# DeferredResolutionTraceTest reads the injected `registry` field of the real DemoViewModel by reflection;
+# R8 renames it otherwise (NoSuchFieldException).
+-keepclassmembers class io.github.santimattius.android.sample.demo.DemoViewModel { *** registry; }
+-keep class io.github.santimattius.android.sample.demo.DemoRegistry { *; }
+-keep interface io.github.santimattius.android.sample.demo.SuspendDemo { *; }
+
 # Library classes the tests call directly. AGP applies the app's R8 mapping to the androidTest run, so a
 # test reference to a library class only resolves when the app run kept it. R8 had removed 143 library
 # types that the test dex references by original name (Compose UI/runtime test hooks such as
