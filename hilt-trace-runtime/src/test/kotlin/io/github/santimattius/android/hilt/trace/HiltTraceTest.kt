@@ -12,6 +12,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -53,6 +54,8 @@ class HiltTraceTest {
 
     @After
     fun tearDown() {
+        HiltTrace.setSystemTraceEnabled(false)
+        HiltTrace.systemTrace = AndroidSystemTrace
         Tracer.resetGlobalTracer()
         context?.close()
     }
@@ -252,6 +255,144 @@ class HiltTraceTest {
         )
 
         assertEquals("com.x.Foo@Io", recorded().first().name)
+    }
+
+    private class FakeSystemTrace(var enabled: Boolean = true, val failing: Boolean = false) :
+        SystemTraceBackend {
+        val calls = mutableListOf<String>()
+
+        override fun isEnabled(): Boolean {
+            if (failing) error("boom")
+            return enabled
+        }
+
+        override fun begin(label: String) {
+            if (failing) error("boom")
+            calls += "begin:$label"
+        }
+
+        override fun end() {
+            if (failing) error("boom")
+            calls += "end"
+        }
+    }
+
+    private fun bridge(fake: FakeSystemTrace): FakeSystemTrace {
+        HiltTrace.systemTrace = fake
+        HiltTrace.setSystemTraceEnabled(true)
+        return fake
+    }
+
+    @Test
+    fun systemTraceIsOffByDefaultAndTouchesNothing() {
+        val fake = FakeSystemTrace()
+        HiltTrace.systemTrace = fake
+        install { true }
+
+        assertFalse(HiltTrace.isSystemTraceEnabled())
+        val token = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo")
+        HiltTrace.end(token)
+
+        assertTrue(fake.calls.isEmpty())
+        assertEquals(listOf(BEGIN, END), recorded().map { it.type })
+    }
+
+    @Test
+    fun systemTraceOffReturnsNullForADisabledCategory() {
+        install { false }
+        HiltTrace.systemTrace = FakeSystemTrace()
+
+        assertNull(HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo"))
+    }
+
+    @Test
+    fun bridgeOnWithASessionMirrorsBalancedAndNestedSections() {
+        val fake = bridge(FakeSystemTrace())
+
+        val outer = HiltTrace.begin(HiltTrace.CATEGORY_INJECT, "A.members")
+        val inner = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "B")
+        HiltTrace.end(inner)
+        HiltTrace.end(outer)
+
+        assertEquals(listOf("begin:A.members", "begin:B", "end", "end"), fake.calls)
+    }
+
+    @Test
+    fun bridgeOnWithoutASessionReturnsNullAndMakesNoCalls() {
+        val fake = bridge(FakeSystemTrace(enabled = false))
+
+        val token = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo")
+        HiltTrace.end(token)
+
+        assertNull(token)
+        assertTrue(fake.calls.isEmpty())
+    }
+
+    @Test
+    fun bridgeTruncatesTheLabelTo127Characters() {
+        val fake = bridge(FakeSystemTrace())
+
+        HiltTrace.end(HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "x".repeat(300)))
+
+        assertEquals("begin:" + "x".repeat(127), fake.calls.first())
+    }
+
+    @Test
+    fun systemOnlyTokenIsASharedSentinelThatAllocatesNothing() {
+        bridge(FakeSystemTrace())
+
+        val first = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo")
+        HiltTrace.end(first)
+        val second = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Bar")
+        HiltTrace.end(second)
+
+        assertTrue(first is AutoCloseable)
+        assertSame(first, second)
+    }
+
+    @Test
+    fun bothSidesAreClosedWhenTheTracerAndTheSystemTraceApply() {
+        val fake = bridge(FakeSystemTrace())
+        install { true }
+
+        val token = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo")
+        HiltTrace.end(token)
+
+        assertEquals(listOf("begin:Foo", "end"), fake.calls)
+        assertEquals(listOf(BEGIN, END), recorded().map { it.type })
+    }
+
+    @Test
+    fun theTokenCarriesTheDecisionWhenTheFlagChangesBeforeEnd() {
+        val fake = bridge(FakeSystemTrace())
+
+        val token = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo")
+        HiltTrace.setSystemTraceEnabled(false)
+        fake.enabled = false
+        HiltTrace.end(token)
+
+        assertEquals(listOf("begin:Foo", "end"), fake.calls)
+    }
+
+    @Test
+    fun aFailingSystemTraceNeverEscapesAndTheTracerStillRecords() {
+        bridge(FakeSystemTrace(failing = true))
+        install { true }
+
+        val token = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo")
+        HiltTrace.end(token)
+
+        assertEquals(listOf(BEGIN, END), recorded().map { it.type })
+    }
+
+    @Test
+    fun aFailingSystemTraceWithoutATracerReturnsNull() {
+        bridge(FakeSystemTrace(failing = true))
+
+        val token = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo")
+        HiltTrace.end(token)
+
+        assertNull(token)
     }
 
     private companion object {

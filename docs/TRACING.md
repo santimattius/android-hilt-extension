@@ -79,7 +79,26 @@ Observed behavior:
 - Without `START` the automatic driver recorded nothing (the file stayed at a 61-byte header).
 - Files are empty until `FLUSH_TRACES_GET_PATH`. Several files may exist; the newest one holds the run. An older empty file is normal.
 - `STOP` returns the setting to disabled.
-- A system-wide `perfetto` capture (`record_android_trace` with `sched gfx am wm view` and `-a <package>`) does **not** contain the `hilt.*` sections. It was run on an Android 15 emulator while the sample's demo cards ran; the app process was in the trace but no Hilt slice was. Use the in-process file above. Android Studio's System Trace has not been tried (unverified).
+- A system-wide `perfetto` capture does not contain the `hilt.*` sections by default: they only go through the in-process `tracing-wire` file. The opt-in system trace bridge below mirrors them; it is off by default. Verified once on an Android 15 emulator (API 35) with the sample (see below).
+
+## System-wide Perfetto capture
+
+`HiltTrace.setSystemTraceEnabled(true)` also mirrors each `hilt.create` and `hilt.inject` section to the system trace (`androidx.tracing.Trace.beginSection` / `endSection`; labels are cut at 127 characters). It is off by default, so nothing changes until you call it. Call it early, for example in `Application.onCreate`; the sample does so for debuggable builds only. The mirror records only while a system trace session runs, and it adds cost on the traced call path (not yet measured).
+
+```bash
+PKG=io.github.santimattius.android.sample
+curl -O https://raw.githubusercontent.com/google/perfetto/main/tools/record_android_trace && chmod +x record_android_trace
+./record_android_trace -t 45s -b 64mb -o hilt.perfetto-trace sched freq gfx am wm view -a $PKG
+# start the app and press the Run buttons while the capture runs
+```
+
+Open the file in the [Perfetto UI](https://ui.perfetto.dev/).
+
+**What was verified.** On an Android 15 emulator, with the sample debug build and this command, the app process held the slices `MainActivity.members`, `DemoView.members`, `DemoService.members`, `ScratchViewModel`, `SingletonCounter`, `FreshWidget` and `ExpensiveService`, next to scheduling and frame data. Only part of the cards had run when the capture ended, so this shows that the mirror works, not that every section appears.
+
+**Differences from the in-process file.**
+- The slice name is the section name alone, for example `MainActivity.members` or a qualified type. The category (`hilt.create`, `hilt.inject`) does not travel through the system trace, so search by name: `inject` sections end in `.members` or are `<Component>.<method>`.
+- With the mirror on and a `tracing-wire` driver active, a section is written to both places.
 
 ## Release builds and the catalogue
 
