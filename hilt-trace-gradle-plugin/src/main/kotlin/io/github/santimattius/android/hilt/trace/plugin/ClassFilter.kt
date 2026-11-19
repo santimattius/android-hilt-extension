@@ -13,7 +13,7 @@ private const val COMPONENT_IMPL_SUFFIX = "CImpl"
  * index based comparisons and never builds a substring.
  */
 internal fun isInstrumentableClassName(className: String): Boolean {
-    if (className.endsWith(SWITCHING_PROVIDER_SUFFIX)) return true
+    if (className.endsWith(SWITCHING_PROVIDER_SUFFIX) || isAssistedFactoryName(className)) return true
     val simpleNameStart = className.lastIndexOf('.') + 1
     if (className.startsWith(HILT_BASE_PREFIX, simpleNameStart)) return true
     return isComponentImplementationName(className)
@@ -25,4 +25,15 @@ internal fun isComponentImplementationName(className: String): Boolean {
     return className.startsWith(COMPONENT_PREFIX, simpleNameStart) &&
         className.indexOf(COMPONENT_INFIX, simpleNameStart) >= 0 &&
         className.endsWith(COMPONENT_IMPL_SUFFIX)
+}
+
+/**
+ * Whether [className] (dotted) is `*$SwitchingProvider$N`, N one or more digits: the anonymous class Hilt
+ * generates for an `@AssistedFactory` or `@HiltWorker` factory. Allocation free.
+ */
+internal fun isAssistedFactoryName(className: String): Boolean {
+    var digits = className.length
+    while (digits > 0 && className[digits - 1] in '0'..'9') digits--
+    if (digits == className.length || digits == 0 || className[digits - 1] != '$') return false
+    return className.regionMatches(digits - 1 - SWITCHING_PROVIDER_SUFFIX.length, SWITCHING_PROVIDER_SUFFIX, 0, SWITCHING_PROVIDER_SUFFIX.length)
 }

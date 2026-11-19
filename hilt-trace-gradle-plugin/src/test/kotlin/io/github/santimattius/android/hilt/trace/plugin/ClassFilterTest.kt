@@ -18,6 +18,8 @@ class ClassFilterTest {
             "spike.app.$component\$ActivityCImpl",
             "spike.app.Hilt_MainActivity",
             "Hilt_Application",
+            "spike.app.$component\$SingletonCImpl\$SwitchingProvider\$1",
+            "spike.app.$component\$ActivityCImpl\$SwitchingProvider\$12",
         ).forEach { assertTrue(it, isInstrumentableClassName(it)) }
     }
 
@@ -26,7 +28,11 @@ class ClassFilterTest {
         listOf(
             "spike.app.MainActivity_MembersInjector",
             "spike.app.MainActivity",
-            "spike.app.$component\$ActivityCImpl\$SwitchingProvider\$1",
+            "spike.app.$component\$ActivityCImpl\$SwitchingProvider\$",
+            "spike.app.$component\$ActivityCImpl\$SwitchingProvider\$x",
+            "spike.app.$component\$ActivityCImpl\$SwitchingProvider\$1\$2",
+            "spike.app.$component\$ActivityCImpl\$Other\$1",
+            "spike.app.\$1",
             "spike.app.$component",
             "spike.hilt_x.Plain",
             "spike.Dagger.Foo_HiltComponents_SingletonC\$ActivityCImpl",
@@ -43,8 +49,8 @@ class ClassFilterTest {
             .sorted()
         assertEquals(
             listOf(
-                "ActivityCImpl", "ActivityCImpl\$SwitchingProvider", "ActivityRetainedCImpl\$SwitchingProvider",
-                "FragmentCImpl", "Hilt_MainActivity", "ServiceCImpl", "SingletonCImpl", "SingletonCImpl\$SwitchingProvider",
+                "ActivityCImpl", "ActivityCImpl\$SwitchingProvider", "ActivityCImpl\$SwitchingProvider\$1", "ActivityRetainedCImpl\$SwitchingProvider",
+                "FragmentCImpl", "Hilt_MainActivity", "ServiceCImpl", "SingletonCImpl", "SingletonCImpl\$SwitchingProvider", "SingletonCImpl\$SwitchingProvider\$1",
                 "ViewCImpl", "ViewModelCImpl\$SwitchingProvider", "ViewWithFragmentCImpl",
             ),
             accepted,
@@ -53,7 +59,7 @@ class ClassFilterTest {
 
     @Test
     fun `isInstrumentable path does not allocate`() {
-        val names = arrayOf("spike.app.$component\$ActivityCImpl\$SwitchingProvider", "spike.app.MainActivity")
+        val names = arrayOf("spike.app.$component\$ActivityCImpl\$SwitchingProvider", "spike.app.MainActivity", "spike.app.$component\$ActivityCImpl\$SwitchingProvider\$1")
         val bean = java.lang.management.ManagementFactory.getThreadMXBean() as com.sun.management.ThreadMXBean
         // Index loops over an array: a lambda, function reference or list iterator would allocate in the test itself.
         for (i in 0 until 20_000) for (name in names) isInstrumentableClassName(name)
