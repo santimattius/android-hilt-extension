@@ -313,6 +313,17 @@ class TraceCaptureTest {
     }
 
     @Test
+    fun libraryBindingUsesItsCatalogueNameForEachGet() {
+        val tracks = captureLaunch(
+            { true },
+            { it.runDemo(DemoId.LIBRARY_BINDING) },
+            { slices -> slices.count { it.type == BEGIN && it.category == CREATE && it.name == LIBRARY_GREETING } >= 2 },
+        )
+
+        assertEquals(2, tracks.allNodes().count { it.category == CREATE && it.name == LIBRARY_GREETING })
+    }
+
+    @Test
     fun lazyAwaitShowsACreateSliceForTheResolvedBinding() {
         val tracks = captureLaunch(
             { true },
@@ -412,6 +423,7 @@ class TraceCaptureTest {
         const val SCRATCH_VIEW_MODEL = "io.github.santimattius.android.sample.android.ScratchViewModel"
         const val SINGLETON_COUNTER = "$DEMO_PACKAGE.SingletonCounter"
         const val FRESH_WIDGET = "$DEMO_PACKAGE.FreshWidget"
+        const val LIBRARY_GREETING = "io.github.santimattius.android.sample.feature.LibraryGreeting"
         const val SLOW_SINGLETON = "$DEMO_PACKAGE.SlowSingleton"
         const val EXPENSIVE_SERVICE = "$DEMO_PACKAGE.ExpensiveService"
         const val TAG = "TraceCaptureTest"

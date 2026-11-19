@@ -10,7 +10,7 @@ All commands run from the repository root. `./gradlew` uses the wrapper (Gradle 
 
 | Scope | Command |
 |-------|---------|
-| Sample app (demo logic, ViewModel) | `./gradlew :app:testDebugUnitTest` |
+| Sample app and library (demo logic, ViewModel, library build) | `./gradlew :sample-feature:testDebugUnitTest :app:testDebugUnitTest` |
 | Runtime facade | `./gradlew :hilt-trace-runtime:testDebugUnitTest` |
 | Coroutine helpers | `./gradlew :hilt-coroutines-runtime:testDebugUnitTest` |
 | Catalogue processor | `./gradlew :hilt-trace-compiler:test` |
@@ -74,6 +74,7 @@ The screen is a list of cards. Each has a title, the promise, the trace section 
 | View injection | Inflates a new `DemoView` below the card | `Inflated DemoView run #n`; the view shows its own injected text | `hilt.inject` `DemoView.members` |
 | Service injection | Starts `DemoService`, which reports back and stops itself | `DemoService #<id> injected with GreetingRepository (Perfetto)` | `hilt.inject` `DemoService.members` |
 | Singleton binding | Requests a `@Singleton` twice | `same instance: true` | `hilt.create` `...demo.SingletonCounter`, first run only |
+| Android library binding | Requests the unscoped `:sample-feature` binding twice using a provider | `Hello from :sample-feature`, `distinct instances: true` | `hilt.create` `io.github.santimattius.android.sample.feature.LibraryGreeting`, once per `get()` (named by the library catalogue) |
 | Qualified dispatchers and scope | Runs a block on each qualified dispatcher and on the scope | Thread name per qualifier; `@ApplicationScope ... (active: true)` | none |
 | SuspendProvider | `Provider.suspending(io)` on a scoped and an unscoped binding | scoped same instance `true`, unscoped new instance `true`, thread of `get()` | `hilt.create` `...demo.FreshWidget`, once per `get()` |
 | SuspendLazy | Five concurrent callers | `got the same value; the initializer ran 1 time` | none |

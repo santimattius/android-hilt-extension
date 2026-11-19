@@ -79,7 +79,7 @@ Observed behavior:
 - Without `START` the automatic driver recorded nothing (the file stayed at a 61-byte header).
 - Files are empty until `FLUSH_TRACES_GET_PATH`. Several files may exist; the newest one holds the run. An older empty file is normal.
 - `STOP` returns the setting to disabled.
-- Recording with Android Studio's System Trace or a `perfetto` command line instead of the in-process file has not been tried for these sections (unverified). The in-process file above is the verified path.
+- A system-wide `perfetto` capture (`record_android_trace` with `sched gfx am wm view` and `-a <package>`) does **not** contain the `hilt.*` sections. It was run on an Android 15 emulator while the sample's demo cards ran; the app process was in the trace but no Hilt slice was. Use the in-process file above. Android Studio's System Trace has not been tried (unverified).
 
 ## Release builds and the catalogue
 

@@ -7,6 +7,7 @@ enum class DemoId {
     VIEW_INJECTION,
     SERVICE_INJECTION,
     SINGLETON_BINDING,
+    LIBRARY_BINDING,
     DISPATCHERS,
     SUSPEND_PROVIDER,
     SUSPEND_LAZY,
@@ -62,6 +63,12 @@ object DemoCatalog {
             "Singleton binding",
             "A scoped binding is created once; later requests reuse it and add no create section.",
             "hilt.create ${DEMO_PACKAGE}.SingletonCounter (first run only)",
+        ),
+        DemoSpec(
+            DemoId.LIBRARY_BINDING,
+            "Android library binding",
+            "An unscoped binding from :sample-feature is named using the library catalogue.",
+            "hilt.create $SAMPLE_PACKAGE.feature.LibraryGreeting",
         ),
         DemoSpec(
             DemoId.DISPATCHERS,
