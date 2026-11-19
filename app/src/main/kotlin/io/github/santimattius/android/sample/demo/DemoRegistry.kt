@@ -8,6 +8,7 @@ class DemoRegistry internal constructor(private val demos: Map<DemoId, SuspendDe
     @Inject
     constructor(
         singleton: SingletonBindingDemo,
+        library: LibraryBindingDemo,
         dispatchers: DispatchersDemo,
         suspendProvider: SuspendProviderDemo,
         suspendLazy: SuspendLazyDemo,
@@ -19,6 +20,7 @@ class DemoRegistry internal constructor(private val demos: Map<DemoId, SuspendDe
     ) : this(
         mapOf(
             DemoId.SINGLETON_BINDING to singleton,
+            DemoId.LIBRARY_BINDING to library,
             DemoId.DISPATCHERS to dispatchers,
             DemoId.SUSPEND_PROVIDER to suspendProvider,
             DemoId.SUSPEND_LAZY to suspendLazy,

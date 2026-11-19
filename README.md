@@ -89,7 +89,7 @@ All artifacts use the group `io.github.santimattius.android` and the version `li
 | `hilt-trace-runtime` | Android library | `HiltTrace` facade over `androidx.tracing`. Called by instrumented code. |
 | `hilt-coroutines-runtime` | Android library | Dispatcher and scope qualifiers, `SuspendProvider`, `SuspendLazy`, `Lazy.await`, `traceCoroutine`. |
 
-The repository also contains `:app` (sample and validation harness) and `build-logic/` (convention plugins). Neither is published.
+The repository also contains `:app` (sample and validation harness), `:sample-feature` (an Android library binding and catalogue used by the sample), and `build-logic/` (convention plugins). None is published.
 
 ## Requirements
 
@@ -126,6 +126,7 @@ Details and the unverified combinations: [Setup: Supported toolchains](docs/SETU
 ```
 android-hilt-extension/
 ├── app/                        # Sample and validation harness (not published)
+├── sample-feature/             # Sample Android library binding and catalogue (not published)
 ├── build-logic/                # Included build: convention plugins (not published)
 ├── compat/                     # Consumer compatibility check used by CI
 ├── hilt-trace-runtime/         # HiltTrace facade
