@@ -16,6 +16,13 @@
 -keep class io.github.santimattius.android.sample.ui.DemoScreenKt { *; }
 -keep class io.github.santimattius.android.sample.ui.theme.ThemeKt { *; }
 
+# AssistedCreationTraceTest reaches the assisted class and its entry point by name; nothing in the app
+# references the entry point, so R8 would otherwise remove it.
+-keep class io.github.santimattius.android.sample.demo.AssistedWidget { *; }
+-keep class io.github.santimattius.android.sample.demo.AssistedWidget$Factory { *; }
+-keep interface io.github.santimattius.android.sample.demo.AssistedWidgetEntryPoint { *; }
+-keep class dagger.hilt.android.EntryPointAccessors { *; }
+
 # The tests reset the Hilt graph through GeneratedComponentManagerHolder and a reflective write to the
 # private `component` field of the application component manager.
 -keep class dagger.hilt.internal.GeneratedComponentManagerHolder { *; }

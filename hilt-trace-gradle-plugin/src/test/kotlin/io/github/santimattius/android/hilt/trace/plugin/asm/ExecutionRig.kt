@@ -152,3 +152,7 @@ internal fun createRuleRig(originals: List<ByteArray>, nameOf: (CaseBody) -> Str
 
 /** A create rule rig over the checked-in fixtures with the given file names. */
 internal fun rigOf(vararg fixtures: String) = createRuleRig(fixtures.map(::fixtureBytes))
+
+/** A rig over assisted factory classes (`$SwitchingProvider$N`) transformed with [nameOf]. */
+internal fun assistedRuleRig(originals: List<ByteArray>, nameOf: (CaseBody) -> String? = ::instrumentEverything) =
+    ExecutionRig(originals) { transformAssistedFactory(it, nameOf) }

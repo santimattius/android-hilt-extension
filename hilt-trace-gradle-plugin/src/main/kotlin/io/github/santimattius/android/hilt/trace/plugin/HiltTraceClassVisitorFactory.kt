@@ -3,6 +3,7 @@ package io.github.santimattius.android.hilt.trace.plugin
 import com.android.build.api.instrumentation.AsmClassVisitorFactory
 import com.android.build.api.instrumentation.ClassContext
 import com.android.build.api.instrumentation.ClassData
+import io.github.santimattius.android.hilt.trace.plugin.asm.assistedFactoryVisitor
 import io.github.santimattius.android.hilt.trace.plugin.asm.bufferedVisitor
 import io.github.santimattius.android.hilt.trace.plugin.asm.instrumentAccessors
 import io.github.santimattius.android.hilt.trace.plugin.asm.instrumentingVisitor
@@ -13,7 +14,8 @@ private val indexes = java.util.Collections.synchronizedMap(java.util.WeakHashMa
 
 /**
  * Entry point of the bytecode instrumentation. Rule C (creation) wraps the case bodies of
- * `$SwitchingProvider` classes, rule A (accessors) the catalogued entry point methods and rule J
+ * `$SwitchingProvider` classes and the `create` method of the anonymous `$SwitchingProvider$N`
+ * factories of assisted classes, rule A (accessors) the catalogued entry point methods and rule J
  * (inject) the public `inject*` methods of catalogued injection targets of the
  * `Dagger*_HiltComponents_*CImpl` classes; every other accepted class is passed through unchanged.
  * The catalogue is read once per factory: it names the slices of all three rules, and without it
@@ -29,6 +31,8 @@ public abstract class HiltTraceClassVisitorFactory : AsmClassVisitorFactory<Hilt
         return when {
             parameters.get().createRuleEnabled.get() && className.endsWith("\$SwitchingProvider") ->
                 instrumentingVisitor(nextClassVisitor, index().names::nameOf, ::warn)
+            parameters.get().createRuleEnabled.get() && isAssistedFactoryName(className) ->
+                assistedFactoryVisitor(nextClassVisitor, index().names::nameOf, ::warn)
             isComponentImplementationName(className) -> {
                 val index = index()
                 if (!index.hasComponentRules) nextClassVisitor else bufferedVisitor(nextClassVisitor, ::warn) { instrumentAccessors(it, index::componentMethodName) }

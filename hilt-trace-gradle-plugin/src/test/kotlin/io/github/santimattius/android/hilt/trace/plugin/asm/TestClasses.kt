@@ -76,3 +76,19 @@ internal fun syntheticProvider(
     writer.visitEnd()
     return writer.toByteArray()
 }
+
+internal const val ASSISTED = "synthetic/Outer\$SwitchingProvider\$1"
+
+/** An assisted factory shaped class whose `create(String)` runs [body] and must end in `ARETURN`; [body] gets a label it may jump to. */
+internal fun syntheticAssistedFactory(body: MethodVisitor.(Label) -> Unit): ByteArray {
+    val writer = framesWriter()
+    writer.visit(V17, ACC_PUBLIC or ACC_SUPER, ASSISTED, null, "java/lang/Object", arrayOf("synthetic/Factory"))
+    writer.visitMethod(ACC_PUBLIC, "create", "(Ljava/lang/String;)Ljava/lang/Object;", null, null).apply {
+        visitCode()
+        body(Label())
+        visitMaxs(0, 0)
+        visitEnd()
+    }
+    writer.visitEnd()
+    return writer.toByteArray()
+}

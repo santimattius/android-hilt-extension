@@ -10,7 +10,7 @@ All commands run from the repository root. `./gradlew` uses the wrapper (Gradle 
 
 | Scope | Command |
 |-------|---------|
-| Sample app (demo logic, ViewModel) | `./gradlew :app:testDebugUnitTest` |
+| Sample app and library (demo logic, ViewModel, library build) | `./gradlew :sample-feature:testDebugUnitTest :app:testDebugUnitTest` |
 | Runtime facade | `./gradlew :hilt-trace-runtime:testDebugUnitTest` |
 | Coroutine helpers | `./gradlew :hilt-coroutines-runtime:testDebugUnitTest` |
 | Catalogue processor | `./gradlew :hilt-trace-compiler:test` |
@@ -34,6 +34,7 @@ What the app suite covers:
 |------------|--------|
 | `TraceCaptureTest` | Installs a recording tracer and checks the real debug build: `hilt.create`/`hilt.inject` nesting, categories off and on independently, plus the section of every sample action (ViewModel, View, Service, singleton once, `Provider` per get, `Lazy`, `traceCoroutine` on and off). |
 | `FragmentTraceCaptureTest` | Launches a real `@AndroidEntryPoint` fragment in a real host activity on the debug build and checks its `hilt.inject` `DemoFragment.members` slice with `GreetingRepository` created inside it. Single class: `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.github.santimattius.android.sample.FragmentTraceCaptureTest`. |
+| `AssistedCreationTraceTest` | Builds an `@AssistedInject` class through its `@AssistedFactory` (obtained from a singleton `@EntryPoint`, no card in the UI) on the debug build and checks the `hilt.create` `AssistedWidget` slice with `GreetingRepository` created inside it and no `SwitchingProvider$N` slice. Single class: `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.github.santimattius.android.sample.AssistedCreationTraceTest`. |
 | `MainActivityDemoTest` | Drives the real activity and asserts every stable result clause on each card: activity recreation and its greeting, the injected view's own text, all dispatcher qualifiers, provider/lazy outcomes, and cancellation behavior. |
 | `DemoScreenTest` | The stateless screen: empty state, click callback, result, running state. |
 
@@ -74,6 +75,7 @@ The screen is a list of cards. Each has a title, the promise, the trace section 
 | View injection | Inflates a new `DemoView` below the card | `Inflated DemoView run #n`; the view shows its own injected text | `hilt.inject` `DemoView.members` |
 | Service injection | Starts `DemoService`, which reports back and stops itself | `DemoService #<id> injected with GreetingRepository (Perfetto)` | `hilt.inject` `DemoService.members` |
 | Singleton binding | Requests a `@Singleton` twice | `same instance: true` | `hilt.create` `...demo.SingletonCounter`, first run only |
+| Android library binding | Requests the unscoped `:sample-feature` binding twice using a provider | `Hello from :sample-feature`, `distinct instances: true` | `hilt.create` `io.github.santimattius.android.sample.feature.LibraryGreeting`, once per `get()` (named by the library catalogue) |
 | Qualified dispatchers and scope | Runs a block on each qualified dispatcher and on the scope | Thread name per qualifier; `@ApplicationScope ... (active: true)` | none |
 | SuspendProvider | `Provider.suspending(io)` on a scoped and an unscoped binding | scoped same instance `true`, unscoped new instance `true`, thread of `get()` | `hilt.create` `...demo.FreshWidget`, once per `get()` |
 | SuspendLazy | Five concurrent callers | `got the same value; the initializer ran 1 time` | none |

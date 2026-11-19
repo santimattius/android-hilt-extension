@@ -2,6 +2,7 @@ package io.github.santimattius.android.hilt.trace.plugin.asm
 
 import io.github.santimattius.android.hilt.trace.compiler.catalogue.Binding
 import io.github.santimattius.android.hilt.trace.compiler.catalogue.BindingKind
+import io.github.santimattius.android.hilt.trace.plugin.isAssistedFactoryName
 import org.objectweb.asm.tree.MethodInsnNode
 import org.objectweb.asm.tree.TypeInsnNode
 
@@ -26,7 +27,9 @@ internal class SliceNames(bindings: List<Binding>) {
             else -> null
         }
         return when {
-            binding == null -> fallbackName(body)
+            // The allocation of an assisted factory (`new ...$SwitchingProvider$1`) is no binding creation: the
+            // construction happens in the factory's own create, which the assisted rule wraps. No slice here.
+            binding == null -> fallbackName(body)?.takeUnless(::isAssistedFactoryName)
             binding.qualifier.isNullOrEmpty() -> binding.type
             else -> "${binding.type}@${binding.qualifier}"
         }

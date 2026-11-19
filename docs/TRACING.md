@@ -20,6 +20,7 @@ Hilt Trace adds Perfetto sections around Hilt object creation and injection in t
 |----------|--------------|-------------|
 | `hilt.create` | `Type` or `Type@Qualifier` (qualified type name, e.g. `kotlin.String@javax.inject.Named(value=audience)`) | Creation of a binding in a `SwitchingProvider` case: scoped bindings, and bindings requested through `Provider`/`Lazy`. |
 | `hilt.create` | The class of the constructor or module factory that produces the value the case returns (not one of its arguments) | Same, when the binding has no catalogue entry (for example a library without the processor). Observed: `...di.CoroutinesModule_ApplicationScopeFactory`. |
+| `hilt.create` | `Type` of the assisted class (the catalogue name of its `ASSISTED_INJECT` entry, else the constructed class) | Construction of an `@AssistedInject` class through its `@AssistedFactory`, and of a `@HiltWorker`. Hilt builds the factory as an anonymous `SingletonCImpl$SwitchingProvider$N`; the whole `create(...)` is wrapped, so the creation of the dependencies shows nested inside. The allocation of the factory object itself has no section. Observed: `...demo.AssistedWidget` containing `...greeting.GreetingRepository`. |
 | `hilt.resolve` | `Provider.suspending` or `Lazy.await` | The suspend adapters of `hilt-coroutines-runtime`, around the blocking `get()`. The `hilt.create` slice of the resolved binding nests inside (`DeferredResolutionTraceTest`). The name does not identify the binding. |
 | `hilt.inject` | `<SimpleName>.members` | Member injection of an `@AndroidEntryPoint` class: Activity, View, Service and Fragment shapes. |
 | `hilt.inject` | `<Component>.<method>` | An `@EntryPoint` accessor method, named after the component it is installed in. |
@@ -29,6 +30,8 @@ Hilt Trace adds Perfetto sections around Hilt object creation and injection in t
 | Kind | Evidence |
 |------|----------|
 | Activity, View, Service injection; ViewModel, singleton, `Provider`, `Lazy` creation | `TraceCaptureTest` on the real debug build of the sample, run on an Android 15 emulator. |
+| `@AssistedInject` creation through its factory | `AssistedCreationTraceTest` on the real debug build of the sample (Android 15 emulator): `hilt.inject SingletonComponent.assistedWidgetFactory`, then `hilt.create ...AssistedWidget` with `hilt.create ...GreetingRepository` inside it, and no section named after `SwitchingProvider$N`. ASM tests on classes captured from real Hilt output (`AssistedFactoryRuleTest`). |
+| `@HiltWorker` creation | Not verified end to end: the sample has no WorkManager. It shares the rule with `@AssistedInject` (a `SwitchingProvider$N` whose `create(...)` constructs the class), which is tested on assisted classes only. |
 | Fragment injection | ASM tests on a class captured from real Hilt output (`InjectRuleTest`, `FixtureCoverageTest`). The sample has no Fragment, so it is not covered end to end. |
 
 A plain `Provider.get()` or `Lazy.get()` in your own code has no section that names its caller: its `hilt.create` slice is a root slice unless your code wraps the call in a section ([Coroutines](COROUTINES.md#trace-section-of-the-adapters), [Limitations](LIMITATIONS.md)).
@@ -82,7 +85,26 @@ Observed behavior:
 - Without `START` the automatic driver recorded nothing (the file stayed at a 61-byte header).
 - Files are empty until `FLUSH_TRACES_GET_PATH`. Several files may exist; the newest one holds the run. An older empty file is normal.
 - `STOP` returns the setting to disabled.
-- Recording with Android Studio's System Trace or a `perfetto` command line instead of the in-process file has not been tried for these sections (unverified). The in-process file above is the verified path.
+- A system-wide `perfetto` capture does not contain the `hilt.*` sections by default: they only go through the in-process `tracing-wire` file. The opt-in system trace bridge below mirrors them; it is off by default. Verified once on an Android 15 emulator (API 35) with the sample (see below).
+
+## System-wide Perfetto capture
+
+`HiltTrace.setSystemTraceEnabled(true)` also mirrors each `hilt.create` and `hilt.inject` section to the system trace (`androidx.tracing.Trace.beginSection` / `endSection`; labels are cut at 127 characters). It is off by default, so nothing changes until you call it. Call it early, for example in `Application.onCreate`; the sample does so for debuggable builds only. The mirror records only while a system trace session runs, and it adds cost on the traced call path (not yet measured).
+
+```bash
+PKG=io.github.santimattius.android.sample
+curl -O https://raw.githubusercontent.com/google/perfetto/main/tools/record_android_trace && chmod +x record_android_trace
+./record_android_trace -t 45s -b 64mb -o hilt.perfetto-trace sched freq gfx am wm view -a $PKG
+# start the app and press the Run buttons while the capture runs
+```
+
+Open the file in the [Perfetto UI](https://ui.perfetto.dev/).
+
+**What was verified.** On an Android 15 emulator, with the sample debug build and this command, the app process held the slices `MainActivity.members`, `DemoView.members`, `DemoService.members`, `ScratchViewModel`, `SingletonCounter`, `FreshWidget` and `ExpensiveService`, next to scheduling and frame data. Only part of the cards had run when the capture ended, so this shows that the mirror works, not that every section appears.
+
+**Differences from the in-process file.**
+- The slice name is the section name alone, for example `MainActivity.members` or a qualified type. The category (`hilt.create`, `hilt.inject`) does not travel through the system trace, so search by name: `inject` sections end in `.members` or are `<Component>.<method>`.
+- With the mirror on and a `tracing-wire` driver active, a section is written to both places.
 
 ## Release builds and the catalogue
 

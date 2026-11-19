@@ -3,6 +3,7 @@
 package io.github.santimattius.android.hilt.trace
 
 import androidx.tracing.DelicateTracingApi
+import androidx.tracing.Trace
 import androidx.tracing.Tracer
 
 /**
@@ -32,6 +33,11 @@ public object HiltTrace {
      */
     @JvmStatic
     public fun begin(category: String, name: String): Any? {
+        if (!systemTraceEnabled) return beginTracer(category, name)
+        return beginMirrored(category, name)
+    }
+
+    private fun beginTracer(category: String, name: String): AutoCloseable? {
         // Never cache Tracer.global: the application installs the real tracer after startup.
         val tracer = Tracer.global
         if (!tracer.isCategoryEnabled(category)) return null
@@ -41,6 +47,87 @@ public object HiltTrace {
         // The holder is shared per track: read the closeable before any other tracing call.
         return holder.closeable
     }
+
+    private fun beginMirrored(category: String, name: String): Any? {
+        val backend = systemTrace
+        val system = try {
+            if (backend.isEnabled()) {
+                backend.begin(if (name.length > MAX_LABEL_LENGTH) name.substring(0, MAX_LABEL_LENGTH) else name)
+                true
+            } else {
+                false
+            }
+        } catch (_: Throwable) {
+            false
+        }
+        val closeable = try {
+            beginTracer(category, name)
+        } catch (t: Throwable) {
+            if (system) endSystem(backend)
+            throw t
+        }
+        return when {
+            !system -> closeable
+            closeable == null -> SystemOnlyToken
+            else -> BothToken(closeable, backend)
+        }
+    }
+
+    private fun endSystem(backend: SystemTraceBackend) {
+        try {
+            backend.end()
+        } catch (_: Throwable) {
+            // Fail open: a tracing failure must never reach app code.
+        }
+    }
+
+    /** Ends the system section of a system-only token; it carries no tracer slice. */
+    private object SystemOnlyToken : AutoCloseable {
+        override fun close() = endSystem(systemTrace)
+    }
+
+    /** Closes the tracer slice first, then the system section, keeping LIFO order. */
+    private class BothToken(
+        private val inner: AutoCloseable,
+        private val backend: SystemTraceBackend,
+    ) : AutoCloseable {
+        override fun close() {
+            try {
+                inner.close()
+            } finally {
+                endSystem(backend)
+            }
+        }
+    }
+
+    /**
+     * Opt-in: also mirrors every `hilt.create` and `hilt.inject` section to the system trace with
+     * `androidx.tracing.Trace`, so it shows in a system-wide Perfetto capture (`perfetto`,
+     * `record_android_trace`, Android Studio System Trace). Off by default; while off, behavior and
+     * allocations are unchanged.
+     *
+     * The mirror is only recorded while a system trace session is running, and it adds cost on the
+     * traced call path (a system-trace check per call, plus a platform call when a session runs).
+     * Call it early, for example in `Application.onCreate`. Sections already open keep the decision
+     * they were opened with.
+     */
+    @JvmStatic
+    public fun setSystemTraceEnabled(enabled: Boolean) {
+        systemTraceEnabled = enabled
+    }
+
+    /** Whether the system trace mirror is on; see [setSystemTraceEnabled]. */
+    @JvmStatic
+    public fun isSystemTraceEnabled(): Boolean = systemTraceEnabled
+
+    @Volatile
+    private var systemTraceEnabled: Boolean = false
+
+    /** Seam for tests: the JVM has no platform trace to observe. */
+    @Volatile
+    internal var systemTrace: SystemTraceBackend = AndroidSystemTrace
+
+    private const val MAX_LABEL_LENGTH = 127
 
     /** Closes the slice opened by the matching [begin]; a `null` token is a no-op. */
     @JvmStatic
@@ -55,4 +142,17 @@ public object HiltTrace {
     @JvmStatic
     public fun sliceName(type: String, qualifier: String?): String =
         if (qualifier.isNullOrEmpty()) type else "$type@$qualifier"
+}
+
+/** The system trace calls the bridge needs; internal so tests can replace the platform. */
+internal interface SystemTraceBackend {
+    fun isEnabled(): Boolean
+    fun begin(label: String)
+    fun end()
+}
+
+internal object AndroidSystemTrace : SystemTraceBackend {
+    override fun isEnabled(): Boolean = Trace.isEnabled()
+    override fun begin(label: String) = Trace.beginSection(label)
+    override fun end() = Trace.endSection()
 }
