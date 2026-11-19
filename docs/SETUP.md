@@ -95,6 +95,7 @@ Optional plugin settings (defaults shown, from `HiltTraceExtension`):
 hiltTrace {
     enabled.set(true)                              // false: no variant is instrumented
     variants.set(listOf("debug", "benchmark"))     // release is never part of the default
+    traceMembersInjectors.set(false)               // true: also trace MembersInjector.injectMembers (see Tracing)
 }
 ```
 

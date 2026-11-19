@@ -24,6 +24,7 @@ Hilt Trace adds Perfetto sections around Hilt object creation and injection in t
 | `hilt.resolve` | `Provider.suspending` or `Lazy.await` | The suspend adapters of `hilt-coroutines-runtime`, around the blocking `get()`. The `hilt.create` slice of the resolved binding nests inside (`DeferredResolutionTraceTest`). The name does not identify the binding. |
 | `hilt.inject` | `<SimpleName>.members` | Member injection of an `@AndroidEntryPoint` class: Activity, View, Service and Fragment shapes. |
 | `hilt.inject` | `<Component>.<method>` | An `@EntryPoint` accessor method, named after the component it is installed in. |
+| `hilt.inject` | `<SimpleName>.injectMembers` | **Opt-in** ([below](#members-injectors-opt-in)): the call of `injectMembers(T)` on a `MembersInjector<T>` obtained through DI. The suffix keeps it apart from the `.members` sections of `@AndroidEntryPoint` classes. |
 
 `@HiltViewModel` creation is a `hilt.create` section named after the ViewModel class (`ViewModelCImpl$SwitchingProvider` is accepted by the filter). Evidence per kind:
 
@@ -32,9 +33,22 @@ Hilt Trace adds Perfetto sections around Hilt object creation and injection in t
 | Activity, View, Service injection; ViewModel, singleton, `Provider`, `Lazy` creation | `TraceCaptureTest` on the real debug build of the sample, run on an Android 15 emulator. |
 | `@AssistedInject` creation through its factory | `AssistedCreationTraceTest` on the real debug build of the sample (Android 15 emulator): `hilt.inject SingletonComponent.assistedWidgetFactory`, then `hilt.create ...AssistedWidget` with `hilt.create ...GreetingRepository` inside it, and no section named after `SwitchingProvider$N`. ASM tests on classes captured from real Hilt output (`AssistedFactoryRuleTest`). |
 | `@HiltWorker` creation | Not verified end to end: the sample has no WorkManager. It shares the rule with `@AssistedInject` (a `SwitchingProvider$N` whose `create(...)` constructs the class), which is tested on assisted classes only. |
+| `MembersInjector.injectMembers` (opt-in) | `MembersInjectorTraceTest` on the real debug build and on the R8-minified build of the sample (Android 15 emulator): `hilt.inject SingletonComponent.membersInjector`, then `hilt.inject MembersInjectionTarget.injectMembers` with `hilt.create ...GreetingRepository` nested inside it. ASM tests on classes captured from real Hilt output (`MembersInjectorRuleTest`, `MembersInjectorWiringTest`). |
 | Fragment injection | ASM tests on a class captured from real Hilt output (`InjectRuleTest`, `FixtureCoverageTest`). The sample has no Fragment, so it is not covered end to end. |
 
 A plain `Provider.get()` or `Lazy.get()` in your own code has no section that names its caller: its `hilt.create` slice is a root slice unless your code wraps the call in a section ([Coroutines](COROUTINES.md#trace-section-of-the-adapters), [Limitations](LIMITATIONS.md)).
+
+### Members injectors (opt-in)
+
+Off by default. Hilt generates a `Target_MembersInjector` for a class with `@Inject` fields or methods, with a real instance method `injectMembers(Target)` that the component never calls (it calls the static setters). Code that receives a `MembersInjector<Target>` through DI and calls it is the only caller. To trace that call:
+
+```kotlin
+hiltTrace {
+    traceMembersInjectors.set(true)   // default false
+}
+```
+
+With the option on, the class filter admits `*_MembersInjector` and the whole `injectMembers(Target)` body is wrapped in a `hilt.inject` section named `<Target simple name>.injectMembers`; the creation of the dependencies it needs nests inside. A class or method of another shape, a method over the code limit or an error leaves the class unchanged with one warning, like the other rules. With the option off the output is unchanged and these classes are not offered to the transform. Release variants stay uninstrumented either way.
 
 Sections nest by call: the sample's `MainActivity.members` section contains the `hilt.create` section of the repository it injects, which contains the section of the scoped qualified value it requests.
 
@@ -103,7 +117,7 @@ Open the file in the [Perfetto UI](https://ui.perfetto.dev/).
 **What was verified.** On an Android 15 emulator, with the sample debug build and this command, the app process held the slices `MainActivity.members`, `DemoView.members`, `DemoService.members`, `ScratchViewModel`, `SingletonCounter`, `FreshWidget` and `ExpensiveService`, next to scheduling and frame data. Only part of the cards had run when the capture ended, so this shows that the mirror works, not that every section appears.
 
 **Differences from the in-process file.**
-- The slice name is the section name alone, for example `MainActivity.members` or a qualified type. The category (`hilt.create`, `hilt.inject`) does not travel through the system trace, so search by name: `inject` sections end in `.members` or are `<Component>.<method>`.
+- The slice name is the section name alone, for example `MainActivity.members` or a qualified type. The category (`hilt.create`, `hilt.inject`) does not travel through the system trace, so search by name: `inject` sections end in `.members` or `.injectMembers` (opt-in), or are `<Component>.<method>`.
 - With the mirror on and a `tracing-wire` driver active, a section is written to both places.
 
 ## Release builds and the catalogue
