@@ -185,6 +185,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
     // tracing-wire does not expose androidx.tracing on the compile classpath, so declare it explicitly.
     implementation(libs.androidx.tracing)
