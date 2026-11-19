@@ -22,4 +22,8 @@ public interface HiltTraceParameters : InstrumentationParameters {
     /** False when Hilt fast init is disabled: no `SwitchingProvider` is generated, so the create rule has nothing to wrap. */
     @get:Input
     public val createRuleEnabled: Property<Boolean>
+
+    /** The opt-in `hiltTrace { traceMembersInjectors }`: admits `*_MembersInjector` classes and wraps their `injectMembers(T)`. */
+    @get:Input
+    public val membersInjectorRuleEnabled: Property<Boolean>
 }

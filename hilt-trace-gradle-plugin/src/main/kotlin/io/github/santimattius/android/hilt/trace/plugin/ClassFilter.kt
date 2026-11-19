@@ -5,11 +5,13 @@ private const val HILT_BASE_PREFIX = "Hilt_"
 private const val COMPONENT_PREFIX = "Dagger"
 private const val COMPONENT_INFIX = "_HiltComponents_"
 private const val COMPONENT_IMPL_SUFFIX = "CImpl"
+private const val MEMBERS_INJECTOR_SUFFIX = "_MembersInjector"
 
 /**
  * Whether [className] (dotted, as AGP reports it) names a class the plugin may instrument:
  * `*$SwitchingProvider`, `Dagger*_HiltComponents_*CImpl` or `Hilt_*`. `*_MembersInjector` is not
- * accepted. AGP asks this for every class on the classpath, so it must not allocate: it only uses
+ * accepted here: it is admitted only when the opt-in `traceMembersInjectors` is on, see
+ * [isMembersInjectorName]. AGP asks this for every class on the classpath, so it must not allocate: it only uses
  * index based comparisons and never builds a substring.
  */
 internal fun isInstrumentableClassName(className: String): Boolean {
@@ -37,3 +39,7 @@ internal fun isAssistedFactoryName(className: String): Boolean {
     if (digits == className.length || digits == 0 || className[digits - 1] != '$') return false
     return className.regionMatches(digits - 1 - SWITCHING_PROVIDER_SUFFIX.length, SWITCHING_PROVIDER_SUFFIX, 0, SWITCHING_PROVIDER_SUFFIX.length)
 }
+
+/** Whether [className] (dotted or internal) is a generated `Target_MembersInjector`. Allocation free. */
+internal fun isMembersInjectorName(className: String): Boolean =
+    className.length > MEMBERS_INJECTOR_SUFFIX.length && className.endsWith(MEMBERS_INJECTOR_SUFFIX)

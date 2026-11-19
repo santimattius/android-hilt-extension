@@ -44,6 +44,7 @@ public class HiltTracePlugin : Plugin<Project> {
                         InstrumentationScope.ALL,
                     ) { parameters ->
                         parameters.createRuleEnabled.set(fastInit)
+                        parameters.membersInjectorRuleEnabled.set(extension.traceMembersInjectors)
                         parameters.catalogues.from(catalogueRoots(project, variant))
                     }
                     variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)

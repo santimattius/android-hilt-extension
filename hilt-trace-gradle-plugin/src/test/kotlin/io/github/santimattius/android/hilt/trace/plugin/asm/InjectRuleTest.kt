@@ -31,8 +31,8 @@ import org.objectweb.asm.util.CheckClassAdapter
 /**
  * Rule J against real Hilt 2.60.1 component implementations (application, activity, fragment, view,
  * view with fragment bindings and service) plus synthetic classes for the shapes Hilt does not emit.
- * `MembersInjector<T>` requested through DI is NOT traced (rule M is cut): the `*_MembersInjector`
- * fixtures must stay byte-identical, which is a documented limitation.
+ * `MembersInjector<T>` requested through DI is traced only by the opt-in members injector rule
+ * (`MembersInjectorRuleTest`): rule J leaves the `*_MembersInjector` fixtures byte-identical.
  */
 class InjectRuleTest {
 

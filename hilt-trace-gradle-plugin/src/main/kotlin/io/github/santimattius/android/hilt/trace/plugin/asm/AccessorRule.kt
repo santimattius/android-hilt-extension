@@ -74,7 +74,7 @@ internal fun instrumentAccessors(node: ClassNode, nameOf: (String, String) -> St
     }
 }
 
-private fun isStraightLine(method: MethodNode) = method.tryCatchBlocks.isEmpty() &&
+internal fun isStraightLine(method: MethodNode) = method.tryCatchBlocks.isEmpty() &&
     method.instructions.none { it is JumpInsnNode || it is TableSwitchInsnNode || it is LookupSwitchInsnNode }
 
 /**
