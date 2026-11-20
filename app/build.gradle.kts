@@ -121,6 +121,9 @@ hiltTrace {
     // Opt-out for A/B measurements (docs/BENCHMARK.md, app start): -PhiltTraceEnabled=false builds the same
     // code and build types without instrumentation. The default stays on.
     enabled.set(providers.gradleProperty("hiltTraceEnabled").map { it != "false" }.orElse(true))
+    // Opt-in: wraps MembersInjector.injectMembers(T) in a hilt.inject slice. The sample is the only consumer;
+    // MembersInjectorTraceTest needs it.
+    traceMembersInjectors.set(true)
 }
 
 // Proof that tracing survives R8: assembles the minified variant and checks its dex. See docs/VERIFY.md.

@@ -59,6 +59,9 @@ internal class ExecutionRig(
         readClass(result.bytes).name.replace('/', '.') to result.bytes
     }
 
+    /** The dotted names of the classes the rig was given. */
+    fun classNames(): Set<String> = classes.keys
+
     private val usage = HashMap<String, Usage>().also { map ->
         fun of(owner: String) = map.getOrPut(owner) { Usage() }
         of(PROVIDER.replace('.', '/')).apply {
@@ -156,3 +159,13 @@ internal fun rigOf(vararg fixtures: String) = createRuleRig(fixtures.map(::fixtu
 /** A rig over assisted factory classes (`$SwitchingProvider$N`) transformed with [nameOf]. */
 internal fun assistedRuleRig(originals: List<ByteArray>, nameOf: (CaseBody) -> String? = ::instrumentEverything) =
     ExecutionRig(originals) { transformAssistedFactory(it, nameOf) }
+
+/**
+ * A `*_MembersInjector` of the rig whose only dependency provider runs [create], built through its private
+ * constructor (one provider parameter).
+ */
+internal fun ExecutionRig.membersInjector(create: () -> Any?): Any {
+    val provider = provider(create)
+    val name = classNames().single { it.endsWith("_MembersInjector") }
+    return loadClass(name).declaredConstructors.single().apply { isAccessible = true }.newInstance(provider)
+}

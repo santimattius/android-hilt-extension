@@ -12,6 +12,7 @@ User-facing changes are listed here. `Unreleased` describes changes since the la
 
 ### Added
 
+- Opt-in `hiltTrace { traceMembersInjectors.set(true) }` (off by default): wraps `MembersInjector.injectMembers(T)` in a `hilt.inject` section named `<T>.injectMembers`. `@Binds`, multibinding contributions and inline `new X()` have no hook and are documented as not instrumented. ([#70](https://github.com/santimattius/android-hilt-extension/issues/70))
 - Managed-device validation of debug and R8-minified instrumented builds, real Android-library integration tests, Fragment trace capture, benchmark smoke checks, and an API 23 probe. The documented minimum supported API remains 24.
 - Checks that instrumented-test reports contain executed, passing tests, preventing false-green Gradle results.
 - `:app:verifyMinifiedReleaseUntraced` to check that an R8-minified release contains no tracing call sites. Requires `-PminifyRelease=true`.
