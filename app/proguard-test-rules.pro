@@ -70,3 +70,11 @@
 -keep class io.github.santimattius.android.sample.android.ShapeReceiver { *; }
 -keep class io.github.santimattius.android.sample.android.ShapesComposeActivity { *; }
 -keep class io.github.santimattius.android.sample.android.ShapesFragmentHostActivity { *; }
+
+# TracedGetTraceTest (issue #84) reaches the entry point by name and reads members of the two bindings it
+# exposes; nothing in the app references the entry point, so R8 would otherwise remove it.
+-keep interface io.github.santimattius.android.sample.demo.TracedGetEntryPoint { *; }
+-keep class io.github.santimattius.android.sample.demo.FreshWidget { *; }
+-keep class io.github.santimattius.android.sample.demo.ExpensiveService { *; }
+# Nothing in the app calls the getTraced helpers; the test does.
+-keep class io.github.santimattius.android.hilt.coroutines.TracedGetKt { *; }

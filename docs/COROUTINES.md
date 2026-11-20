@@ -72,7 +72,30 @@ Evidence: on the sample's real Hilt graph (Android 15 emulator), `DeferredResolu
 - Only a creation slice exists for the first resolution of a scoped binding; later calls leave an empty `hilt.resolve` section (cache hits have no slice of their own, see [Limitations](LIMITATIONS.md)).
 - When `hilt.resolve` is disabled the adapters call `get()` through `withContext` as before; the category is checked first, so the disabled path adds no section wrapper. Not measured with `:benchmark-micro`.
 - `SuspendLazy` does not open a section.
-- A plain `Provider.get()` or `Lazy.get()` in your own code is not linked to its caller. Wrap your own call site: `traceCoroutine("app.feature", "load-profile") { provider.get() }` from a coroutine (unverified end to end: only the two adapters are covered by a test). In blocking code, a section of your own opened with `androidx.tracing` on the same thread should nest the same way (unverified).
+- A plain `Provider.get()` or `Lazy.get()` in your own code is not linked to its caller unless you call `getTraced` (next section).
+
+### Linking a blocking `get()` to its caller: `getTraced`
+
+```kotlin
+import io.github.santimattius.android.hilt.coroutines.getTraced
+
+class CheckoutScreen @Inject constructor(private val cart: Provider<Cart>) {
+    fun open() {
+        val value = cart.getTraced("CheckoutScreen")   // also available on dagger.Lazy
+    }
+}
+```
+
+`Provider<T>.getTraced(name)` and `Lazy<T>.getTraced(name)` are plain synchronous functions. They open a section in the category `hilt.resolve` named `name` (your label for the requester), call `get()` on the same thread, and close the section in a `finally`. The `hilt.create` slice of the binding is written on the same thread track, so it nests inside the section.
+
+Nothing in the generated Dagger code can name the requester of a plain `get()` (the router only holds a binding id), so this is an opt-in at your own call site, not an automatic link.
+
+Evidence: `TracedGetTraceTest` on the sample's real Hilt graph, on the debug build and on the R8-minified build (Android 15 emulator), for a `Provider<FreshWidget>` and a `dagger.Lazy<ExpensiveService>` reached through an `@EntryPoint`. The recorded events on one track are `BEGIN hilt.resolve CheckoutScreen`, `BEGIN hilt.create <binding>`, `END`, `END`. Unit tests (`TracedGetTest`) cover the returned value, exception propagation with the section closed, a disabled category, no installed tracer, and a tracer that throws.
+
+- The helpers are fail-open: a tracing failure never breaks the `get()`, and the value or exception of `get()` reaches the caller unchanged.
+- When `hilt.resolve` is disabled, or no tracer is installed, the call is a plain `get()` plus a category check; the disabled path allocates no section. Not measured with `:benchmark-micro`.
+- Use it from a thread, not across suspension: the section is opened and closed on the calling thread. From a coroutine, use `traceCoroutine` or `Provider.suspending`.
+- Not covered: a plain `get()` without the helper, `SuspendLazy`, and cache hits of a scoped binding (the section is recorded, with no `hilt.create` inside).
 
 ## SuspendLazy
 
@@ -94,4 +117,4 @@ suspend fun refresh() = traceCoroutine(category = "app.sync", name = "refresh") 
 
 A passthrough to `androidx.tracing` that reads `Tracer.global` on every call. The section follows the coroutine across suspension points and thread switches, so a suspended coroutine is written as several thread segments of one named section. It is a plain call of the block when the category is disabled or no driver is installed. The result and any exception reach the caller unchanged.
 
-The category is yours; the Hilt categories `hilt.create` and `hilt.inject` are written by the plugin, and `hilt.resolve` by `Provider.suspending` and `Lazy.await`. Whether your category is recorded depends on the driver (see [Tracing](TRACING.md)).
+The category is yours; the Hilt categories `hilt.create` and `hilt.inject` are written by the plugin, and `hilt.resolve` by `Provider.suspending`, `Lazy.await` and `getTraced`. Whether your category is recorded depends on the driver (see [Tracing](TRACING.md)).
