@@ -314,7 +314,7 @@ class HiltTraceTest {
         HiltTrace.end(inner)
         HiltTrace.end(outer)
 
-        assertEquals(listOf("begin:A.members", "begin:B", "end", "end"), fake.calls)
+        assertEquals(listOf("begin:hilt.inject A.members", "begin:hilt.create B", "end", "end"), fake.calls)
     }
 
     @Test
@@ -329,12 +329,54 @@ class HiltTraceTest {
     }
 
     @Test
-    fun bridgeTruncatesTheLabelTo127Characters() {
+    fun bridgeLabelStartsWithTheCategoryForBothCategories() {
+        val fake = bridge(FakeSystemTrace())
+
+        HiltTrace.end(HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "io.x.Repo"))
+        HiltTrace.end(HiltTrace.begin(HiltTrace.CATEGORY_INJECT, "MainActivity.members"))
+
+        assertEquals(
+            listOf(
+                "begin:hilt.create io.x.Repo",
+                "end",
+                "begin:hilt.inject MainActivity.members",
+                "end",
+            ),
+            fake.calls,
+        )
+    }
+
+    @Test
+    fun bridgeTruncatesTheLabelTo127CharactersKeepingTheCategoryPrefix() {
         val fake = bridge(FakeSystemTrace())
 
         HiltTrace.end(HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "x".repeat(300)))
 
-        assertEquals("begin:" + "x".repeat(127), fake.calls.first())
+        val label = fake.calls.first().removePrefix("begin:")
+        assertEquals(127, label.length)
+        assertTrue(label.startsWith("hilt.create x"))
+        assertEquals("hilt.create " + "x".repeat(127 - "hilt.create ".length), label)
+    }
+
+    @Test
+    fun bridgeLabelOfExactly127CharactersIsNotTruncated() {
+        val fake = bridge(FakeSystemTrace())
+        val name = "y".repeat(127 - "hilt.inject ".length)
+
+        HiltTrace.end(HiltTrace.begin(HiltTrace.CATEGORY_INJECT, name))
+
+        assertEquals("begin:hilt.inject $name", fake.calls.first())
+    }
+
+    @Test
+    fun theInProcessSliceNameKeepsNoCategoryPrefixWhenBothSidesAreOn() {
+        val fake = bridge(FakeSystemTrace())
+        install { true }
+
+        HiltTrace.end(HiltTrace.begin(HiltTrace.CATEGORY_INJECT, "MainActivity.members"))
+
+        assertEquals("begin:hilt.inject MainActivity.members", fake.calls.first())
+        assertEquals("MainActivity.members", recorded().first().name)
     }
 
     @Test
@@ -358,7 +400,7 @@ class HiltTraceTest {
         val token = HiltTrace.begin(HiltTrace.CATEGORY_CREATE, "Foo")
         HiltTrace.end(token)
 
-        assertEquals(listOf("begin:Foo", "end"), fake.calls)
+        assertEquals(listOf("begin:hilt.create Foo", "end"), fake.calls)
         assertEquals(listOf(BEGIN, END), recorded().map { it.type })
     }
 
@@ -371,7 +413,7 @@ class HiltTraceTest {
         fake.enabled = false
         HiltTrace.end(token)
 
-        assertEquals(listOf("begin:Foo", "end"), fake.calls)
+        assertEquals(listOf("begin:hilt.create Foo", "end"), fake.calls)
     }
 
     @Test
