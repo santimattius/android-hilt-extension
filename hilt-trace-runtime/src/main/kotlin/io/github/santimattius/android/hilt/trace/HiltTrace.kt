@@ -52,7 +52,9 @@ public object HiltTrace {
         val backend = systemTrace
         val system = try {
             if (backend.isEnabled()) {
-                backend.begin(if (name.length > MAX_LABEL_LENGTH) name.substring(0, MAX_LABEL_LENGTH) else name)
+                // Built only here, after the session check: no label exists while the bridge is off
+                // or no system trace session runs.
+                backend.begin(systemLabel(category, name))
                 true
             } else {
                 false
@@ -71,6 +73,16 @@ public object HiltTrace {
             closeable == null -> SystemOnlyToken
             else -> BothToken(closeable, backend)
         }
+    }
+
+    /**
+     * `Trace.beginSection` has no category, so the category leads the label: `hilt.inject Foo.members`.
+     * The platform cuts labels at [MAX_LABEL_LENGTH] characters; the cut falls on the name side so the
+     * category prefix survives.
+     */
+    private fun systemLabel(category: String, name: String): String {
+        val label = "$category $name"
+        return if (label.length > MAX_LABEL_LENGTH) label.substring(0, MAX_LABEL_LENGTH) else label
     }
 
     private fun endSystem(backend: SystemTraceBackend) {
@@ -102,7 +114,8 @@ public object HiltTrace {
 
     /**
      * Opt-in: also mirrors every `hilt.create` and `hilt.inject` section to the system trace with
-     * `androidx.tracing.Trace`, so it shows in a system-wide Perfetto capture (`perfetto`,
+     * `androidx.tracing.Trace`, labelled `<category> <name>` (for example `hilt.inject MainActivity.members`,
+     * cut at 127 characters on the name side), so it shows in a system-wide Perfetto capture (`perfetto`,
      * `record_android_trace`, Android Studio System Trace). Off by default; while off, behavior and
      * allocations are unchanged.
      *
