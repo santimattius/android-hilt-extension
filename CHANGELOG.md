@@ -12,6 +12,7 @@ User-facing changes are listed here. `Unreleased` describes changes since the la
 
 ### Added
 
+- `Provider.getTraced(name)` and `Lazy.getTraced(name)` in `hilt-coroutines-runtime`: call them at your own call site to wrap a blocking `get()` in a `hilt.resolve` section named by you, so the binding's `hilt.create` slice nests under it. Fail-open; a plain `get()` stays unlinked. ([#84](https://github.com/santimattius/android-hilt-extension/issues/84))
 - Opt-in `hiltTrace { traceMembersInjectors.set(true) }` (off by default): wraps `MembersInjector.injectMembers(T)` in a `hilt.inject` section named `<T>.injectMembers`. `@Binds`, multibinding contributions and inline `new X()` have no hook and are documented as not instrumented. ([#70](https://github.com/santimattius/android-hilt-extension/issues/70))
 - Managed-device validation of debug and R8-minified instrumented builds, real Android-library integration tests, Fragment trace capture, benchmark smoke checks, and an API 23 probe. The documented minimum supported API remains 24.
 - Checks that instrumented-test reports contain executed, passing tests, preventing false-green Gradle results.
