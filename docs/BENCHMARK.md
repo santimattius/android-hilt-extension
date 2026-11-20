@@ -12,6 +12,17 @@ The difference between the two medians is the cost of the disabled-category chec
 - The instrumented path returns the same result as the baseline, and `begin` returns `null` for the benchmarked category when no driver is installed (`CallPathsTest`, JVM unit test).
 - The benchmark and its APK compile and package (`:benchmark-micro:assembleMicrobenchmark`).
 
+## System trace bridge cases
+
+`SystemTraceBridgeBenchmark` (same module, same `CallPaths.instrumented` shape) covers the paths the opt-in system trace bridge adds, with the in-process category disabled:
+
+- `bridgeOff`: the default; one extra volatile read in `begin`.
+- `bridgeOnWithoutSession`: the bridge is on and `Trace.isEnabled()` is false, so each call pays the platform check and builds no label.
+
+Not covered: the bridge on with a system trace session running (a platform call per section); it needs a Perfetto session around the run, which the module does not start. Both cases assert that no system trace session is running.
+
+**Status: no figure is recorded.** The cases compile (`:benchmark-micro:assembleMicrobenchmark`) and ran once on an Android 15 emulator, which only shows they execute. Emulator timings are not a measurement of overhead and are not quoted here. A physical-device run is pending; compare its medians with `baseline` and `instrumentedWithDisabledCategory` from the same run.
+
 ## What is not proved
 
 ## Measured (by hand, 2026-11-15, not CI)

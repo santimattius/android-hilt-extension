@@ -10,6 +10,10 @@ User-facing changes are listed here. `Unreleased` describes changes since the la
 - Read Android library catalogues from included builds without confusing projects that share the same path. Preserve catalogues when libraries use the same module ID, and warn when a selected variant or conventional included-build directory cannot be read.
 - Name fallback creation slices after the constructor or factory producing the returned binding, rather than a nested argument factory. This fixes misleading names such as `CoroutinesModule_DefaultDispatcherFactory` for an application-scope binding. ([#80](https://github.com/santimattius/android-hilt-extension/issues/80), [#81](https://github.com/santimattius/android-hilt-extension/pull/81))
 
+### Changed
+
+- The system trace label of the opt-in bridge (`HiltTrace.setSystemTraceEnabled(true)`) now starts with the category, for example `hilt.inject MainActivity.members` instead of `MainActivity.members`, so the sections are easy to find in a system-wide Perfetto capture. Labels longer than 127 characters are cut at the end, keeping the category. The in-process trace is unchanged. ([#83](https://github.com/santimattius/android-hilt-extension/issues/83))
+
 ### Added
 
 - Opt-in `hiltTrace { traceMembersInjectors.set(true) }` (off by default): wraps `MembersInjector.injectMembers(T)` in a `hilt.inject` section named `<T>.injectMembers`. `@Binds`, multibinding contributions and inline `new X()` have no hook and are documented as not instrumented. ([#70](https://github.com/santimattius/android-hilt-extension/issues/70))

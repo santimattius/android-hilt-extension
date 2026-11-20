@@ -106,7 +106,7 @@ Observed behavior:
 
 ## System-wide Perfetto capture
 
-`HiltTrace.setSystemTraceEnabled(true)` also mirrors each `hilt.create` and `hilt.inject` section to the system trace (`androidx.tracing.Trace.beginSection` / `endSection`; labels are cut at 127 characters). It is off by default, so nothing changes until you call it. Call it early, for example in `Application.onCreate`; the sample does so for debuggable builds only. The mirror records only while a system trace session runs, and it adds cost on the traced call path (not yet measured).
+`HiltTrace.setSystemTraceEnabled(true)` also mirrors each `hilt.create` and `hilt.inject` section to the system trace (`androidx.tracing.Trace.beginSection` / `endSection`; the label is `<category> <name>`, for example `hilt.inject MainActivity.members`, because `Trace.beginSection` has no category field; labels are cut at 127 characters). It is off by default, so nothing changes until you call it. Call it early, for example in `Application.onCreate`; the sample does so for debuggable builds only. The mirror records only while a system trace session runs, and it adds cost on the traced call path. Benchmark cases for that cost exist (see [Benchmarks](BENCHMARK.md)); no figure is recorded yet because a physical-device run is pending.
 
 ```bash
 PKG=io.github.santimattius.android.sample
@@ -117,10 +117,10 @@ curl -O https://raw.githubusercontent.com/google/perfetto/main/tools/record_andr
 
 Open the file in the [Perfetto UI](https://ui.perfetto.dev/).
 
-**What was verified.** On an Android 15 emulator, with the sample debug build and this command, the app process held the slices `MainActivity.members`, `DemoView.members`, `DemoService.members`, `ScratchViewModel`, `SingletonCounter`, `FreshWidget` and `ExpensiveService`, next to scheduling and frame data. Only part of the cards had run when the capture ended, so this shows that the mirror works, not that every section appears.
+**What was verified.** The label format (`hilt.create <name>` / `hilt.inject <name>`, cut at 127 characters on the name side so the category prefix is kept) is verified by JVM unit tests (`HiltTraceTest`, with a fake of the platform trace). A capture with the new format has not been recorded in this document. An earlier capture on an Android 15 emulator (API 35), made with the previous format where the label was the section name alone, held the slices `MainActivity.members`, `DemoView.members`, `DemoService.members`, `ScratchViewModel`, `SingletonCounter`, `FreshWidget` and `ExpensiveService` in the app process, next to scheduling and frame data. Only part of the cards had run when that capture ended, so it showed that the mirror works, not that every section appears.
 
 **Differences from the in-process file.**
-- The slice name is the section name alone, for example `MainActivity.members` or a qualified type. The category (`hilt.create`, `hilt.inject`) does not travel through the system trace, so search by name: `inject` sections end in `.members` or `.injectMembers` (opt-in), or are `<Component>.<method>`.
+- The system slice name starts with the category, then one space, then the section name: `hilt.inject MainActivity.members`, `hilt.create <qualified type>`. Search for `hilt.` to find every section, or `hilt.inject` / `hilt.create` for one category. When the label would exceed 127 characters, the end of the name is cut; the category prefix is always kept. The in-process file keeps the bare section name, with the category as its own field.
 - With the mirror on and a `tracing-wire` driver active, a section is written to both places.
 
 ## Release builds and the catalogue
