@@ -7,6 +7,7 @@ import io.github.santimattius.android.hilt.trace.plugin.asm.assistedFactoryVisit
 import io.github.santimattius.android.hilt.trace.plugin.asm.bufferedVisitor
 import io.github.santimattius.android.hilt.trace.plugin.asm.instrumentAccessors
 import io.github.santimattius.android.hilt.trace.plugin.asm.instrumentingVisitor
+import io.github.santimattius.android.hilt.trace.plugin.asm.membersInjectorVisitor
 import org.gradle.api.logging.Logging
 import org.objectweb.asm.ClassVisitor
 
@@ -19,7 +20,9 @@ private val indexes = java.util.Collections.synchronizedMap(java.util.WeakHashMa
  * (inject) the public `inject*` methods of catalogued injection targets of the
  * `Dagger*_HiltComponents_*CImpl` classes; every other accepted class is passed through unchanged.
  * The catalogue is read once per factory: it names the slices of all three rules, and without it
- * rules A and J have nothing to wrap. `*_MembersInjector` is never instrumented (rule M is cut).
+ * rules A and J have nothing to wrap. `*_MembersInjector` classes are accepted and instrumented only
+ * when the opt-in `hiltTrace { traceMembersInjectors }` is on: `injectMembers(T)` gets one `hilt.inject`
+ * slice; with the option off (the default) they are never offered to the transform.
  */
 public abstract class HiltTraceClassVisitorFactory : AsmClassVisitorFactory<HiltTraceParameters> {
 
@@ -37,11 +40,15 @@ public abstract class HiltTraceClassVisitorFactory : AsmClassVisitorFactory<Hilt
                 val index = index()
                 if (!index.hasComponentRules) nextClassVisitor else bufferedVisitor(nextClassVisitor, ::warn) { instrumentAccessors(it, index::componentMethodName) }
             }
+            isMembersInjectorName(className) && parameters.get().membersInjectorRuleEnabled.get() -> membersInjectorVisitor(nextClassVisitor, ::warn)
             else -> nextClassVisitor
         }
     }
 
-    override fun isInstrumentable(classData: ClassData): Boolean = isInstrumentableClassName(classData.className)
+    override fun isInstrumentable(classData: ClassData): Boolean {
+        val className = classData.className
+        return isInstrumentableClassName(className) || (isMembersInjectorName(className) && parameters.get().membersInjectorRuleEnabled.get())
+    }
 
     // Logging must never fail a class: a missing logger only drops the message.
     private fun warn(message: String) {

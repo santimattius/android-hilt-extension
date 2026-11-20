@@ -13,9 +13,8 @@ private val SINGLE_TARGET_DESCRIPTOR = Regex("\\(L([^;\\[(]+);\\)V")
  * its descriptor never matches, and whether the method is public, non-static and non-synthetic is
  * decided by the rule engine ([instrumentAccessors]), which wraps whatever this answers for.
  *
- * `*_MembersInjector.injectMembers` has the same signature but is never offered: rule M is cut
- * because the component calls the static setters, so `MembersInjector<T>` requested through DI is
- * not traced.
+ * `*_MembersInjector.injectMembers` has the same signature but is never offered here, and the rule engine
+ * only visits component implementations: it has its own opt-in rule ([instrumentMembersInjector]).
  *
  * Catalogue types are dotted (`p.Outer.Inner`); descriptors write nested classes with `$`, which is
  * read as a dot here. An empty index means rule J does nothing.

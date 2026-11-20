@@ -12,9 +12,17 @@ public abstract class HiltTraceExtension {
     /** Names of the variants to instrument. Release is never part of the default. */
     public abstract val variants: ListProperty<String>
 
+    /**
+     * Opt-in, off by default: wraps `injectMembers(T)` of the generated `*_MembersInjector` classes in a
+     * `hilt.inject` slice named `T.injectMembers`. Only a consumer that receives a `MembersInjector<T>`
+     * through DI calls it (the component calls the static setters), so for most apps it records nothing.
+     */
+    public abstract val traceMembersInjectors: Property<Boolean>
+
     internal fun applyDefaults() {
         enabled.convention(true)
         variants.convention(DEFAULT_VARIANTS)
+        traceMembersInjectors.convention(false)
     }
 
     private companion object {

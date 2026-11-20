@@ -23,6 +23,14 @@
 -keep interface io.github.santimattius.android.sample.demo.AssistedWidgetEntryPoint { *; }
 -keep class dagger.hilt.android.EntryPointAccessors { *; }
 
+# MembersInjectorTraceTest reaches the injected class and its entry point by name; nothing in the app
+# references the entry point, so R8 would otherwise remove it (NoClassDefFoundError).
+-keep class io.github.santimattius.android.sample.demo.MembersInjectionTarget { *; }
+-keep interface io.github.santimattius.android.sample.demo.MembersInjectionEntryPoint { *; }
+# The app never calls MembersInjector.injectMembers (the component calls the static setters), so R8 drops
+# the interface method; the test calls it through the interface.
+-keep interface dagger.MembersInjector { *; }
+
 # The tests reset the Hilt graph through GeneratedComponentManagerHolder and a reflective write to the
 # private `component` field of the application component manager.
 -keep class dagger.hilt.internal.GeneratedComponentManagerHolder { *; }
