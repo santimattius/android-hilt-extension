@@ -147,4 +147,4 @@ The module brings `kotlinx-coroutines-core` and `hilt-android` as `api` dependen
 | Coroutine helpers | Add `io.github.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha01` to `implementation`. |
 | This repository | `settings.gradle.kts` includes the plugin build, and `app/build.gradle.kts` intentionally substitutes the runtime and compiler coordinates with local projects so repository builds validate the current source. |
 
-The current version, `libraryVersion` in `gradle.properties`, is `1.0.0-alpha01`.
+The current version, `libraryVersion` in `gradle.properties`, is `1.0.0-alpha02`. The consumer snippets above keep `1.0.0-alpha01` until `1.0.0-alpha02` is published to Maven Central.
