@@ -21,7 +21,7 @@ count_calls() {
   fi
   work=$(mktemp -d)
   unzip -qo "$apk" 'classes*.dex' -d "$work"
-  for dex in "$work"/classes*.dex; do "$DEXDUMP" -d "$dex"; done | grep -c 'HiltTrace;.begin' || true
+  for dex in "$work"/classes*.dex; do "$DEXDUMP" -d "$dex"; done | grep -c 'HiltTrace;\.begin:' || true
 }
 
 DEBUG=$(count_calls debug)
