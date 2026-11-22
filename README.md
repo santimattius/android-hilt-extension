@@ -10,7 +10,7 @@ Runtime tracing for Hilt on Android, plus coroutine helpers for Hilt apps.
 - **Coroutine helpers** provide dispatcher and scope qualifiers, suspending adapters for `Provider` and `Lazy`, and a trace section that follows a coroutine.
 
 > [!WARNING]
-> **Pre-release (`1.0.0-alpha01`).** The four artifacts are available from Maven Central, but the APIs and instrumentation behavior may still change before a stable release. See [Setup](docs/SETUP.md#consuming-the-artifacts).
+> **Pre-release (`1.0.0-alpha02`).** The four artifacts are available from Maven Central, but the APIs and instrumentation behavior may still change before a stable release. See [Setup](docs/SETUP.md#consuming-the-artifacts).
 
 ## Quick start
 
@@ -42,7 +42,7 @@ For an application module that already uses Hilt with KSP. The `libs.*` aliases 
        alias(libs.plugins.android.application)
        alias(libs.plugins.ksp)
        alias(libs.plugins.hilt)
-       id("io.github.santimattius.android.hilt.trace") version "1.0.0-alpha01"
+       id("io.github.santimattius.android.hilt.trace") version "1.0.0-alpha02"
    }
 
    ksp {
@@ -58,7 +58,7 @@ For an application module that already uses Hilt with KSP. The `libs.*` aliases 
        ksp(libs.hilt.compiler)
        implementation(libs.androidx.tracing)
        debugImplementation(libs.androidx.tracing.wire)      // writes trace files; optional
-       implementation("io.github.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha01")  // optional
+       implementation("io.github.santimattius.android:hilt-coroutines-runtime:1.0.0-alpha02")  // optional
    }
    ```
 
