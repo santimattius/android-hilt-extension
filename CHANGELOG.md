@@ -4,9 +4,15 @@ User-facing changes are listed here. `Unreleased` describes changes since the la
 
 ## Unreleased
 
+## 1.0.0-alpha03 — 2026-11-23
+
+Third prerelease. The APIs and instrumentation behavior may still change before a stable release.
+
 ### Fixed
 
-- `hilt-trace-compiler`: defensive fix for a KSP2 build failure (`KaInvalidLifetimeOwnerAccessException: PSI has changed since creation`, thrown from `CatalogueProcessor.finish`) reported on a module that also runs hilt-compiler, Room, Moshi and DeepLinkDispatch. The processor now reads each source file's path while its PSI is still valid. Not reproduced outside the reporter's build yet, so it is unconfirmed whether this resolves it.
+- `hilt-trace-compiler`: fixes a KSP2 build failure in incremental builds, `KaInvalidLifetimeOwnerAccessException: PSI has changed since creation`, thrown from `CatalogueProcessor.finish` in a module that also runs hilt-compiler, Room, Moshi and DeepLinkDispatch. The processor now reads each source file's path while its PSI is still valid. If it still occurs, `-Pksp.incremental=false` avoids it. ([#99](https://github.com/santimattius/android-hilt-extension/pull/99))
+
+[Full comparison since alpha02](https://github.com/santimattius/android-hilt-extension/compare/v1.0.0-alpha02...v1.0.0-alpha03)
 
 ## 1.0.0-alpha02 — 2026-11-20
 
