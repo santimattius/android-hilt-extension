@@ -49,6 +49,7 @@ internal class CatalogueProcessor(private val environment: SymbolProcessorEnviro
     private val targets = linkedSetOf<InjectionTarget>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        cacheFilePaths(resolver)
         functions(resolver, "dagger.Provides").forEach { methodBinding(BindingKind.PROVIDES, it)?.let(bindings::add) }
         functions(resolver, "dagger.Binds").forEach { methodBinding(BindingKind.BINDS, it)?.let(bindings::add) }
         INJECT.forEach { annotation ->
@@ -61,6 +62,16 @@ internal class CatalogueProcessor(private val environment: SymbolProcessorEnviro
             declaration.qualifiedName?.asString()?.let { targets += InjectionTarget(it) }
         }
         return emptyList()
+    }
+
+    /**
+     * [finish] writes with [Dependencies.ALL_FILES]; in incremental mode KSP then reads `KSFile.filePath` of every
+     * source file. That value is lazy, and by [finish] the PSI behind it can be stale after other processors
+     * generated sources (KSP2: "PSI has changed since creation"). Reading it here, while the PSI is valid,
+     * caches it for later.
+     */
+    private fun cacheFilePaths(resolver: Resolver) {
+        resolver.getAllFiles().forEach { it.filePath }
     }
 
     override fun finish() {

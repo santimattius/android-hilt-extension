@@ -12,6 +12,12 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.google.devtools.ksp.processing.Dependencies
+import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.processing.SymbolProcessorProvider
+import com.google.devtools.ksp.symbol.KSAnnotated
 
 /** Runs the catalogue processor with kctfork 0.14.0 on the pinned Kotlin 2.4.21 / KSP 2.3.13. */
 class CatalogueProcessorTest {
@@ -211,5 +217,39 @@ class CatalogueProcessorTest {
     fun emptyModuleMatchesTheGoldenFile() {
         val compiled = compile(":empty", SourceFile.kotlin("Plain.kt", "package p\nclass Plain"))
         assertEquals(golden("empty.json"), compiled.files.getValue("_empty.json"))
+    }
+
+    /** Stands in for Hilt/Dagger/Room: generates a source file in round 1, invalidating the original PSI. */
+    private class SourceGeneratingProvider : SymbolProcessorProvider {
+        override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
+            object : SymbolProcessor {
+                private var done = false
+                override fun process(resolver: Resolver): List<KSAnnotated> {
+                    if (!done) {
+                        done = true
+                        environment.codeGenerator
+                            .createNewFile(Dependencies(false), "p", "Generated")
+                            .bufferedWriter().use { it.write("package p\nclass Generated") }
+                    }
+                    return emptyList()
+                }
+            }
+    }
+
+    @Test
+    fun writesTheCatalogueWhenAnotherProcessorGeneratesSources() {
+        val compilation = KotlinCompilation().apply {
+            sources = listOf(SourceFile.kotlin("Plain.kt", "package p\nclass Plain"))
+            inheritClassPath = true
+            configureKsp {
+                // Gradle runs KSP incrementally; only then does the code generator read KSFile.filePath.
+                incremental = true
+                symbolProcessorProviders += mutableListOf(SourceGeneratingProvider(), CatalogueProcessorProvider())
+                processorOptions["hiltTrace.module"] = ":multi-round"
+            }
+        }
+        val result = compilation.compile()
+        assertEquals(result.messages, KotlinCompilation.ExitCode.OK, result.exitCode)
+        assertTrue(compilation.workingDir.walkTopDown().any { it.name == "_multi-round.json" })
     }
 }
