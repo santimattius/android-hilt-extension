@@ -145,7 +145,7 @@ android-hilt-extension/
 3. Use conventional commit messages.
 4. Open a pull request that describes the change.
 
-Releases are published by CI when a GitHub Release is created; see [Publishing](docs/PUBLISHING.md).
+Alpha versions use JitPack; stable releases use Maven Central through CI when a non-prerelease GitHub Release is published. Both channels provide the same four artifacts, including the Gradle plugin; see [Publishing](docs/PUBLISHING.md#jitpack-the-same-four-artifacts) for setup and hosted verification.
 
 ## License
 

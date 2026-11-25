@@ -1,15 +1,15 @@
-# Publishing to Maven Central
+# Publishing to Maven Central and JitPack
 
-Maintainer guide for releasing the four library artifacts to Maven Central. Publishing uses the [gradle-maven-publish-plugin](https://github.com/vanniktech/gradle-maven-publish-plugin); the shared configuration is the `hiltext.publishing` convention plugin in the `build-logic` included build.
+Maintainer guide for distributing the same four artifacts: **alpha versions go to JitPack; stable releases go to Maven Central**. Publishing uses the [gradle-maven-publish-plugin](https://github.com/vanniktech/gradle-maven-publish-plugin); the shared configuration is the `hiltext.publishing` convention plugin in the `build-logic` included build.
 
 > [!NOTE]
-> `1.0.0-alpha01` is available from Maven Central. The steps below describe how maintainers publish subsequent releases (see [Setup](SETUP.md#consuming-the-artifacts)).
+> `1.0.0-alpha01` is available from Maven Central. That existing publication remains available; new alpha versions use JitPack. The steps below describe how maintainers publish stable releases (see [Setup](SETUP.md#consuming-the-artifacts)).
 
 **Quick path:**
 
 1. Complete the [prerequisites](#prerequisites) and add the [repository secrets](#1-configure-repository-secrets).
 2. Set the new version in the three `gradle.properties` files and run `./gradlew verifyVersionAlignment`.
-3. Create a GitHub Release whose tag is `v<version>`; the workflow publishes. See [Release flow](#2-release-flow).
+3. For a stable version, create a non-prerelease GitHub Release whose tag is `v<version>`; the workflow publishes. See [Release flow](#2-release-flow). For alpha versions, use the [JitPack path](#jitpack-the-same-four-artifacts).
 
 ## Prerequisites
 
@@ -73,11 +73,11 @@ Then run:
 ./gradlew -p hilt-trace-gradle-plugin publishToMavenCentral
 ```
 
-Releases are automatic (no manual "Publish" step in Central Portal): `hiltext.publishing` sets `automaticRelease = true`. Publications are signed unless `-Philtext.skipSigning=true` is passed; only the `compat` CI job uses that opt-out.
+Releases are automatic (no manual "Publish" step in Central Portal): `hiltext.publishing` sets `automaticRelease = true`. Publications are signed unless `-Philtext.skipSigning=true` is passed; the `compat` CI job and JitPack use that opt-out for local Maven publication. Maven Central releases remain signed.
 
 ## CI/CD with GitHub Actions
 
-The `Publish to Maven Central` workflow (`.github/workflows/publish-maven-central.yml`) runs when a **GitHub Release** is **published**. The tag must be the library version with a `v` prefix (tag `v1.0.0` publishes version `1.0.0`).
+The `Publish to Maven Central` workflow (`.github/workflows/publish-maven-central.yml`) receives **published GitHub Release** events, but its publication job runs only when the release is not marked as a prerelease and its tag contains no `-` qualifier. Alpha, beta and RC tags are skipped, even if incorrectly marked as stable. Use a stable version with a `v` prefix (tag `v1.0.0` publishes version `1.0.0`). Direct local publishing commands do not apply this CI filter; use them only for stable releases.
 
 ### 1. Configure repository secrets
 
@@ -94,10 +94,106 @@ In **Settings → Secrets and variables → Actions**, add:
 ### 2. Release flow
 
 1. Set the `libraryVersion` default to the new version (for example `1.0.0`) in `gradle.properties`, `build-logic/gradle.properties` and `hilt-trace-gradle-plugin/gradle.properties`. `./gradlew verifyVersionAlignment` fails if they differ.
-2. Commit and push, then create a **GitHub Release** with tag `v1.0.0`.
+2. Commit and push, then create a **GitHub Release** with tag `v1.0.0`, without selecting **Set as a pre-release**.
 3. The workflow publishes the three root-build modules, then the Gradle plugin with its own invocation, all at version `1.0.0`.
 
 The workflow runs on JDK 25 (the Gradle daemon JVM pinned in `gradle/gradle-daemon-jvm.properties`) while the library bytecode targets JVM 17. It passes the tag version as `ORG_GRADLE_PROJECT_libraryVersion`, which reaches the root build and the included builds, so the defaults in the `gradle.properties` files are only fallbacks; the tag is the source of truth for the published version.
+
+## JitPack: the same four artifacts
+
+JitPack distributes **alpha version tags only**; stable releases use Maven Central.
+[`jitpack.yml`](../jitpack.yml) selects JDK 25 and invokes
+[`scripts/publish-jitpack.sh`](../scripts/publish-jitpack.sh). The script publishes
+exactly the three root libraries and the included-build Gradle plugin to Maven
+local, including its plugin marker. It does not publish the sample, benchmarks,
+or convention plugins, and does not upload anything to Maven Central.
+
+JitPack supplies `VERSION`. The script accepts alpha tags such as
+`v1.2.3-alpha01`, `1.2.3-alpha.1` or `v1.2.3-alpha`, preserving them verbatim.
+Stable versions, beta/RC tags, branches and commit hashes are rejected before
+Gradle runs. It uses the multi-module group
+`com.github.santimattius.android-hilt-extension`. These coordinates are also
+embedded into the plugin JAR so its injected runtime and compiler dependencies
+use JitPack rather than Maven Central. No signing keys or Central credentials
+are needed for this path.
+
+### Consume libraries and the Gradle plugin
+
+Replace `<alpha-tag>` with an alpha tag containing the JitPack configuration.
+In the consuming project's `settings.gradle.kts`, add JitPack to both repository
+sets. Resolve the plugin implementation explicitly to avoid depending on how
+JitPack exposes the Gradle plugin marker:
+
+```kotlin
+pluginManagement {
+    repositories {
+        maven("https://jitpack.io")
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "io.github.santimattius.android.hilt.trace") {
+                useModule(
+                    "com.github.santimattius.android-hilt-extension:" +
+                        "hilt-trace-gradle-plugin:${requested.version}"
+                )
+            }
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        maven("https://jitpack.io")
+        google()
+        mavenCentral()
+    }
+}
+```
+
+In the module's `build.gradle.kts`, keep the existing Hilt/KSP configuration
+from [Setup](SETUP.md) and use the same revision for all four artifacts:
+
+```kotlin
+plugins {
+    id("io.github.santimattius.android.hilt.trace") version "<alpha-tag>"
+}
+
+dependencies {
+    implementation(
+        "com.github.santimattius.android-hilt-extension:" +
+            "hilt-coroutines-runtime:<alpha-tag>"
+    )
+}
+```
+
+The plugin adds `hilt-trace-runtime` and `hilt-trace-compiler` automatically.
+Avoid mixing Central and JitPack copies of the same artifacts in one consumer.
+
+### Verify before requesting a hosted build
+
+The entry-point contract tests run without Gradle or network access:
+
+```bash
+python3 -m unittest discover -s scripts -p test_publish_jitpack.py
+```
+
+For an isolated local publication using the same script:
+
+```bash
+repo="$(mktemp -d)"
+VERSION=v1.2.3-alpha01 bash scripts/publish-jitpack.sh "-Dmaven.repo.local=$repo"
+```
+
+Local publication does not prove JitPack's hosted environment or POM rewriting.
+After pushing the configuration and an alpha tag, request that
+tag at [JitPack](https://jitpack.io/#santimattius/android-hilt-extension).
+Check the build log, hosted POMs, and a consumer using both the plugin and a
+library before announcing that revision as available. Its Android SDK must
+support the platforms required by the build (the libraries use API 35 and the
+sample uses API 37); the JDK alone does not establish SDK availability.
 
 ## Customizing POM and coordinates
 
