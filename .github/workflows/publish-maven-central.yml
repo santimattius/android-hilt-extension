@@ -1,4 +1,5 @@
-# Publishes every library module to Maven Central when a GitHub Release is published.
+# Publishes all library modules to Maven Central for stable GitHub Releases.
+# Alpha tags use JitPack; prereleases and qualified tags are skipped.
 # Each module is published under its own artifact id (the module name) through the
 # hiltext.publishing convention plugin. Tag must match the version (e.g. v1.0.0). Version is
 # derived by stripping the 'v' prefix and passed to every build, included builds too, through
@@ -22,6 +23,9 @@ permissions:
 
 jobs:
   publish:
+    if: >-
+      ${{ !github.event.release.prerelease &&
+          !contains(github.event.release.tag_name, '-') }}
     name: Publish Libraries
     runs-on: ubuntu-latest
     steps:
