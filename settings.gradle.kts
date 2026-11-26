@@ -1,7 +1,21 @@
 pluginManagement {
+    val sampleJitPackVersion = providers.gradleProperty("sampleJitPackVersion").orNull
     includeBuild("build-logic")
-    includeBuild("hilt-trace-gradle-plugin")
+    if (sampleJitPackVersion == null) {
+        includeBuild("hilt-trace-gradle-plugin")
+    } else {
+        resolutionStrategy.eachPlugin {
+            if (requested.id.id == "io.github.santimattius.android.hilt.trace") {
+                useModule("com.github.santimattius.android-hilt-extension:hilt-trace-gradle-plugin:$sampleJitPackVersion")
+            }
+        }
+    }
     repositories {
+        if (sampleJitPackVersion != null) {
+            maven("https://jitpack.io") {
+                content { includeGroup("com.github.santimattius.android-hilt-extension") }
+            }
+        }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -16,6 +30,11 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        if (providers.gradleProperty("sampleJitPackVersion").isPresent) {
+            maven("https://jitpack.io") {
+                content { includeGroup("com.github.santimattius.android-hilt-extension") }
+            }
+        }
         google()
         mavenCentral()
     }

@@ -20,6 +20,15 @@ All commands run from the repository root. `./gradlew` uses the wrapper (Gradle 
 
 Reports: `<module>/build/reports/tests/`.
 
+### Hosted JitPack sample smoke (opt-in)
+
+```bash
+bash scripts/check-sample-jitpack.sh                         # v1.0.0-alpha04
+bash scripts/check-sample-jitpack.sh v1.0.0-alpha04 --info  # version, then Gradle options
+```
+
+This device-free check resolves the hosted plugin, runtime, coroutine helpers and compiler, verifies the debug runtime and both KSP classpaths, runs the sample unit tests, and assembles debug and release. It needs network access to JitPack and the normal Android build prerequisites. The property is opt-in; ordinary builds keep their local projects and included plugin. This does not run an emulator or prove runtime trace capture: run the instrumented checks in section 2 separately.
+
 ## 2. Instrumented tests (device or emulator)
 
 ```bash

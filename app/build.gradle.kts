@@ -11,6 +11,8 @@ plugins {
 val androidMinSdkVersion: String by project
 val androidTargetSdkVersion: String by project
 val libraryGroupId: String by project
+val sampleJitPackVersion = providers.gradleProperty("sampleJitPackVersion").orNull
+val jitPackGroup = "com.github.santimattius.android-hilt-extension"
 
 // Canary switch (never set it in normal builds): -PdisableComposePreviewWorkaround=resources|unit-tests
 // drops one of the two settings below so scripts/check-compose-preview-canary.sh can prove each is still
@@ -104,10 +106,74 @@ androidComponents {
 
 // The plugin adds the compiler and runtime at its own group and version. This repository intentionally
 // substitutes those coordinates with local projects so the sample validates the current source.
-configurations.configureEach {
-    resolutionStrategy.dependencySubstitution {
-        substitute(module("$libraryGroupId:hilt-trace-runtime")).using(project(":hilt-trace-runtime"))
-        substitute(module("$libraryGroupId:hilt-trace-compiler")).using(project(":hilt-trace-compiler"))
+if (sampleJitPackVersion == null) {
+    configurations.configureEach {
+        resolutionStrategy.dependencySubstitution {
+            substitute(module("$libraryGroupId:hilt-trace-runtime")).using(project(":hilt-trace-runtime"))
+            substitute(module("$libraryGroupId:hilt-trace-compiler")).using(project(":hilt-trace-compiler"))
+        }
+    }
+}
+
+// Resolve the actual debug runtime and KSP classpath, not declared dependencies.
+val verifySampleJitPack = tasks.register("verifySampleJitPack") {
+    group = "verification"
+    description = "Checks that the sample resolves hosted JitPack artifacts."
+    dependsOn(":sample-feature:verifySampleJitPack")
+    if (sampleJitPackVersion == null) {
+        doLast { throw GradleException("verifySampleJitPack requires -PsampleJitPackVersion") }
+    }
+}
+if (sampleJitPackVersion != null) {
+    afterEvaluate {
+        val processor = configurations.filter {
+            it.isCanBeResolved && it.name.startsWith("ksp", ignoreCase = true) &&
+                it.name.contains("debug", ignoreCase = true) && it.name.contains("processor", ignoreCase = true) &&
+                !it.name.contains("test", ignoreCase = true)
+        }.single()
+        fun componentIds(configuration: org.gradle.api.artifacts.Configuration) =
+            configuration.incoming.resolutionResult.rootComponent.map { root ->
+                // Inspect component identities without selecting an Android artifact type.
+                val ids = linkedSetOf<org.gradle.api.artifacts.component.ComponentIdentifier>()
+                fun visit(component: org.gradle.api.artifacts.result.ResolvedComponentResult) {
+                    if (!ids.add(component.id)) return
+                    component.dependencies.forEach { dependency ->
+                        check(dependency is org.gradle.api.artifacts.result.ResolvedDependencyResult) {
+                            "Unresolved dependency ${dependency.requested}"
+                        }
+                        visit(dependency.selected)
+                    }
+                }
+                visit(root)
+                ids.map { id ->
+                    when (id) {
+                        is org.gradle.api.artifacts.component.ModuleComponentIdentifier -> "${id.group}:${id.module}:${id.version}"
+                        is org.gradle.api.artifacts.component.ProjectComponentIdentifier -> "project:${id.projectPath}"
+                        else -> id.displayName
+                    }
+                }.sorted()
+            }
+        val runtime = componentIds(configurations.getByName("debugRuntimeClasspath"))
+        val compiler = componentIds(processor)
+        val version = sampleJitPackVersion
+        val expectedGroup = jitPackGroup
+        verifySampleJitPack.configure {
+            inputs.property("runtimeComponents", runtime)
+            inputs.property("compilerComponents", compiler)
+            doLast {
+                val runtimeIds = inputs.properties.getValue("runtimeComponents") as List<*>
+                val compilerIds = inputs.properties.getValue("compilerComponents") as List<*>
+                listOf("hilt-trace-runtime", "hilt-coroutines-runtime").forEach { name ->
+                    check("$expectedGroup:$name:$version" in runtimeIds && "project::$name" !in runtimeIds) {
+                        "Expected hosted $name:$version without a local project in debug runtime: $runtimeIds"
+                    }
+                }
+                check("$expectedGroup:hilt-trace-compiler:$version" in compilerIds &&
+                    "project::hilt-trace-compiler" !in compilerIds) {
+                    "Expected hosted compiler:$version without a local project in app KSP: $compilerIds"
+                }
+            }
+        }
     }
 }
 
@@ -180,7 +246,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(project(":hilt-coroutines-runtime"))
+    if (sampleJitPackVersion == null) {
+        implementation(project(":hilt-coroutines-runtime"))
+    } else {
+        implementation("$jitPackGroup:hilt-coroutines-runtime:$sampleJitPackVersion")
+    }
     implementation(project(":sample-feature"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
